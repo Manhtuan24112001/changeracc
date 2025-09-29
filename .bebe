@@ -2564,7 +2564,7 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(45) do
         local fruit = equipCorrectFruit()
         if fruit then
             task.wait(0.5)
