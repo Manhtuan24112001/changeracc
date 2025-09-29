@@ -1,3 +1,312 @@
+getgenv().RunningFarm = true
+-- ===============================
+-- 🌟 CONFIG CHUNG (bạn chỉnh tại đây)
+-- ===============================
+getgenv().Config = {
+    LoopInterval = 12, -- giây: mỗi vòng lặp tổng
+
+    -- Trồng cây
+    Plant_Seeds = { -- target số lượng cây trong farm
+        ['Evo Beetroot I'] = 20,
+        ['Evo Blueberry I'] = 20,
+        ['Evo Pumpkin I'] = 20,
+        ['Evo Mushroom I'] = 20,
+
+        ['Evo Beetroot II'] = 20,
+        ['Evo Blueberry II'] = 20,
+        ['Evo Pumpkin II'] = 20,
+        ['Evo Mushroom II'] = 20,
+
+        ['Evo Beetroot III'] = 20,
+        ['Evo Blueberry III'] = 20,
+        ['Evo Pumpkin III'] = 20,
+        ['Evo Mushroom III'] = 20,
+        ['Carrot'] = 10,
+        ['Turnip'] = 10,
+        ['Parsley'] = 10,
+        ['Meyer Lemon'] = 10,
+        ['Carnival Pumpkin'] = 10,
+        ['Kniphofia'] = 10,
+        ['Golden Peach'] = 10,
+        ['Maple Resin'] = 10,
+        ['Moon Blossom'] = 10,
+        ['Bone Blossom'] = 10,
+        ['Moon Melon'] = 10,
+        ['Maple Apple'] = 10,
+        ['Moon Mango'] = 10,
+        ['Dragon Pepper'] = 10,
+        ['Elephant Ears'] = 10,
+        ['Fossilight'] = 10,
+        ['Princess Thorn'] = 10,
+        ['Coconut'] = 10,
+        ['Mushroom'] = 10,
+        ['Glowthorn'] = 10,
+        ['Pepper'] = 10,
+        ['Cacao'] = 10,
+        ['Apple'] = 10,
+        ['Wispwing'] = 10,
+        ['Romanesco'] = 10,
+        ['Elder Strawberry'] = 10,
+        ['Burning Bud'] = 10,
+        ['Giant Pinecone'] = 10,
+        ['Corn'] = 10,
+        ['Sugar Apple'] = 10,
+        ['Ember Lily'] = 10,
+        ['Dragon Fruit'] = 10,
+        ['Sunbulb'] = 10,
+        ['Orange Tulip'] = 10,
+        ['Mango'] = 10,
+        ['Cactus'] = 10,
+        ['Beanstalk'] = 10,
+        ['Lightshoot'] = 10,
+        ['Grape'] = 10,
+        ['Daffodil'] = 10,
+        ['Aurora Vine'] = 10,
+        ['Grand Tomato'] = 10,
+        ['Maple Apple'] = 10,
+        ['Princess Thorn'] = 10,
+        ['Spiked Mango'] = 10,
+        ['Pineapple'] = 10,
+        ['King Cabbage'] = 10,
+        ['Carnival Pumpkin'] = 10,
+        ['Kniphofia'] = 10,
+        ['Golden Peach'] = 10,
+        ['Maple Resin'] = 10,
+    },
+
+    -- Vòi phun (đặt theo thứ tự ưu tiên, mặc định đặt ở bên phải)
+    Sprinklers = {
+        'Basic Sprinkler',
+        'Advanced Sprinkler',
+        'Master Sprinkler',
+        'Grandmaster Sprinkler',
+        'Godly Sprinkler',
+    },
+
+    -- Fruit
+    skipFruit = { 'Weed', 'StoneFruit' }, -- bỏ qua tên fruit
+    skipMutation = { 'Glimmering', 'Golden' }, -- bỏ qua mutation
+
+    -- Eggs (đặt & nở + ưu tiên khi thiếu pet)
+    EggsPlant = {
+        { Name = 'Jungle Egg', Amount = 6 },
+        { Name = 'Bug Egg', Amount = 2 },
+        { Name = 'Rare Summer Egg', Amount = 2 },
+    },
+    PetNeedsPlant = { -- ví dụ: nếu Rooster < 9 thì ưu tiên Rare Egg
+        ['Rooster<5'] = 'Rare Egg',
+    },
+    AutoHatch = true,
+    PlaceDelay = 0.25,
+    HatchDelay = 0.25,
+
+    -- Bán pet
+    PetNoSell = {
+        'Red Panda',
+        'Griffin',
+        'Space Squirrel',
+        'Barn Owl',
+        'Swan',
+        'Wisp',
+        ['Shroomie'] = 8,
+        'Luminous Sprite',
+        'Phoenix',
+        'Cockatrice',
+        'Drake',
+        'Gnome',
+        'Green Bean',
+        'Apple Gazelle',
+        'Lemon Lion',
+        'Peach Wasp',
+        'Golden Goose',
+        'French Fry Ferret',
+        'Corrupted Kitsune',
+        'Raiju',
+        'Koi',
+        'Kitsune',
+        'Dilophosaurus',
+        'Moon Cat',
+        'Capybara',
+        'Chicken Zombie',
+        ['Sunny-Side Chicken'] = 8,
+        ['Rooster'] = 10,
+        'Spinosaurus',
+        ['Brown Mouse'] = 5,
+        ['Squirrel'] = 5,
+        ['Grey Mouse'] = 5,
+        'Bear Bee',
+        'T-Rex',
+        'Brontosaurus',
+        'Disco Bee',
+        'Butterfly',
+        'Queen Bee',
+        'Dragonfly',
+        'Raccoon',
+        'Fennec Fox',
+        'Mimic Octopus',
+        'Red Fox',
+        'Blood Owl',
+        ['Seal'] = 8,
+        ['Starfish'] = 8,
+    },
+    WeightLimit = 7, -- kg
+
+    -- Cho pet ăn
+    HungerThreshold = 0, -- dưới ngưỡng này sẽ cho ăn
+
+    -- Equip pet
+    PetUpLv = { ['Starfish'] = 1 },
+    PetPrioritize = { ['Rooster'] = 5, ['Tarantula Hawk'] = 1, ['Wasp'] = 1 },
+    PetRandom = { ['Wisp'] = 2 },
+
+    -- AutoBuy (chạy 1 pass / vòng)
+    AutoBuy = {
+        Seeds = {
+            ['Carrot'] = 10,
+            ['Strawberry'] = 10,
+            ['Blueberry'] = 10,
+            ['Orange Tulip'] = 10,
+            ['Tomato'] = 10,
+            ['Corn'] = 10,
+            ['Daffodil'] = 10,
+            ['Cauliflower'] = 10,
+            ['Watermelon'] = 10,
+            ['Rafflesia'] = 10,
+            ['Green Apple'] = 10,
+            ['Avocado'] = 10,
+            ['Banana'] = 10,
+            ['Pineapple'] = 10,
+            ['Kiwi'] = 10,
+            ['Bell Pepper'] = 10,
+            ['Prickly Pear'] = 10,
+            ['Loquat'] = 10,
+            ['Feijoa'] = 10,
+            ['Pitcher Plant'] = 10,
+            ['Pumpkin'] = 10,
+            ['Apple'] = 10,
+            ['Bamboo'] = 10,
+            ['Coconut'] = 10,
+            ['Cactus'] = 10,
+            ['Dragon Fruit'] = 10,
+            ['Mango'] = 10,
+            ['Grape'] = 10,
+            ['Mushroom'] = 10,
+            ['Pepper'] = 10,
+            ['Cacao'] = 10,
+            ['Beanstalk'] = 10,
+            ['Ember Lily'] = 10,
+            ['Sugar Apple'] = 10,
+            ['Burning Bud'] = 10,
+            ['Giant Pinecone'] = 10,
+            ['Elder Strawberry'] = 10,
+            ['Romanesco'] = 10,
+        },
+        Gears = {
+            ['Watering Can'] = 2,
+            'Trading Ticket',
+            'Trowel',
+            ['Basic Sprinkler'] = 1,
+            'Advanced Sprinkler',
+            'Godly Sprinkler',
+            'Master Sprinkler',
+            'Grandmaster Sprinkler',
+            'Recall Wrench',
+            'Magnifying Glass',
+            'Favorite Tool',
+            'Harvest Tool',
+            'Friendship Pot',
+            'Medium Toy',
+            'Medium Treat',
+            'Cleaning Spray',
+            'Cleansing Pet Shard',
+            'Levelup Lollipop',
+        },
+        Eggs = {
+            ['Common Egg'] = 5,
+            ['Uncommon Egg'] = 10,
+            'Rare Egg',
+            'Legendary Egg',
+            'Mythical Egg',
+            'Bug Egg',
+        },
+        EventShop = {
+            ['Turnip'] = 1,
+            ['Fall Seed Pack'] = 1,
+            ['Parsley'] = 1,
+            ['Meyer Lemon'] = 1,
+            ['Carnival Pumpkin'] = 1,
+            ['Kniphofia'] = 1,
+            ['Golden Peach'] = 1,
+            ['Maple Resin'] = 1,
+
+            -- ⚙️ Gear
+            ['Firefly Jar'] = 1,
+            ['Sky Lantern'] = 1,
+            ['Maple Leaf Kite'] = 1,
+            ['Leaf Blower'] = 1,
+            ['Maple Syrup'] = 1,
+            ['Maple Sprinkler'] = 1,
+            ['Bonfire'] = 1,
+            ['Harvest Basket'] = 1,
+            ['Maple Leaf Charm'] = 1,
+            ['Golden Acorn'] = 1,
+            ['Rake'] = 1,
+            ['Acorn Bell'] = 1,
+            ['Acorn Lollipop'] = 1,
+            ['Super Leaf Blower'] = 1,
+
+            -- 🐾 Pets & Eggs
+            ['Fall Egg'] = 1,
+            ['Chipmunk'] = 1,
+            ['Red Squirrel'] = 1,
+            ['Salmon'] = 1,
+            ['Marmot'] = 1,
+            ['Sugar Glider'] = 1,
+            ['Woodpecker'] = 1,
+            ['Space Squirrel'] = 1,
+            ['Mallard'] = 1,
+            ['Red Panda'] = 1,
+
+            -- 📦 Crates & Cosmetics
+            ['Fall Crate'] = 1,
+            ['Maple Crate'] = 1,
+            ['Fall Leaf Chair'] = 1,
+            ['Maple Flag'] = 1,
+            ['Fall Wreath'] = 1,
+            ['Fall Hay Bale'] = 1,
+            ['Pile Of Leaves'] = 1,
+            ['Flying Kite'] = 1,
+            ['Fall Fountain'] = 1,
+        },
+    },
+
+    -- Phá cây
+    MaxPlants = 300,
+    BreakList = { 'Carrot' },
+
+    -- Webhook (tùy chọn)
+    WebhookUrl = 'https://discord.com/api/webhooks/1367210306904002630/8gxmUF7Z5nQqSEtprqYz_VwWndHIf8n-bJb1a8u7ONVu6y7bXuUs24YFxhdkNr40gn_A',
+    SendAllPets = false,
+    PetFilter = {
+        'Swan',
+        'Phoenix',
+        'Golden Goose',
+        'French Fry Ferret',
+        'Cockatrice',
+        'Kitsune',
+        'Spinosaurus',
+        'T-Rex',
+        'Disco Bee',
+        'Butterfly',
+        'Mimic Octopus',
+        'Queen Bee',
+        'Fennec Fox',
+        'Dragonfly',
+        'Raccoon',
+        'Red Fox',
+    },
+}
+
 local Players = game:GetService('Players')
 local VirtualUser = game:GetService('VirtualUser')
 local player = Players.LocalPlayer
@@ -350,316 +659,169 @@ toggleButton.Parent = overlayGui
 toggleButton.MouseButton1Click:Connect(function()
     overlayFrame.Visible = not overlayFrame.Visible
 end)
+local player = game.Players.LocalPlayer
 
-getgenv().RunningFarm = true
--- ===============================
--- 🌟 CONFIG CHUNG (bạn chỉnh tại đây)
--- ===============================
-getgenv().Config = {
-    LoopInterval = 12, -- giây: mỗi vòng lặp tổng
-
-    -- Trồng cây
-    Plant_Seeds = { -- target số lượng cây trong farm
-        ['Evo Beetroot I'] = 20,
-        ['Evo Blueberry I'] = 20,
-        ['Evo Pumpkin I'] = 20,
-        ['Evo Mushroom I'] = 20,
-
-        ['Evo Beetroot II'] = 20,
-        ['Evo Blueberry II'] = 20,
-        ['Evo Pumpkin II'] = 20,
-        ['Evo Mushroom II'] = 20,
-
-        ['Evo Beetroot III'] = 20,
-        ['Evo Blueberry III'] = 20,
-        ['Evo Pumpkin III'] = 20,
-        ['Evo Mushroom III'] = 20,
-        ['Carrot'] = 10,
-        ['Turnip'] = 10,
-        ['Parsley'] = 10,
-        ['Meyer Lemon'] = 10,
-        ['Carnival Pumpkin'] = 10,
-        ['Kniphofia'] = 10,
-        ['Golden Peach'] = 10,
-        ['Maple Resin'] = 10,
-        ['Moon Blossom'] = 10,
-        ['Bone Blossom'] = 10,
-        ['Moon Melon'] = 10,
-        ['Maple Apple'] = 10,
-        ['Moon Mango'] = 10,
-        ['Dragon Pepper'] = 10,
-        ['Elephant Ears'] = 10,
-        ['Fossilight'] = 10,
-        ['Princess Thorn'] = 10,
-        ['Coconut'] = 10,
-        ['Mushroom'] = 10,
-        ['Glowthorn'] = 10,
-        ['Pepper'] = 10,
-        ['Cacao'] = 10,
-        ['Apple'] = 10,
-        ['Wispwing'] = 10,
-        ['Romanesco'] = 10,
-        ['Elder Strawberry'] = 10,
-        ['Burning Bud'] = 10,
-        ['Giant Pinecone'] = 10,
-        ['Corn'] = 10,
-        ['Sugar Apple'] = 10,
-        ['Ember Lily'] = 10,
-        ['Dragon Fruit'] = 10,
-        ['Sunbulb'] = 10,
-        ['Orange Tulip'] = 10,
-        ['Mango'] = 10,
-        ['Cactus'] = 10,
-        ['Beanstalk'] = 10,
-        ['Lightshoot'] = 10,
-        ['Grape'] = 10,
-        ['Daffodil'] = 10,
-        ['Aurora Vine'] = 10,
-        ['Grand Tomato'] = 10,
-        ['Maple Apple'] = 10,
-        ['Princess Thorn'] = 10,
-        ['Spiked Mango'] = 10,
-        ['Pineapple'] = 10,
-        ['King Cabbage'] = 10,
-        ['Carnival Pumpkin'] = 10,
-        ['Kniphofia'] = 10,
-        ['Golden Peach'] = 10,
-        ['Maple Resin'] = 10,
-    },
-
-    -- Vòi phun (đặt theo thứ tự ưu tiên, mặc định đặt ở bên phải)
-    Sprinklers = {
-        'Basic Sprinkler',
-        'Advanced Sprinkler',
-        'Master Sprinkler',
-        'Grandmaster Sprinkler',
-        'Godly Sprinkler',
-    },
-
-    -- Fruit
-    skipFruit = { 'Weed', 'StoneFruit' }, -- bỏ qua tên fruit
-    skipMutation = { 'Glimmering', 'Golden' }, -- bỏ qua mutation
-
-    -- Eggs (đặt & nở + ưu tiên khi thiếu pet)
-    EggsPlant = {
-        { Name = 'Jungle Egg', Amount = 6 },
-        { Name = 'Bug Egg', Amount = 2 },
-        { Name = 'Rare Summer Egg', Amount = 2 },
-    },
-    PetNeedsPlant = { -- ví dụ: nếu Rooster < 9 thì ưu tiên Rare Egg
-        ['Rooster<5'] = 'Rare Egg',
-    },
-    AutoHatch = true,
-    PlaceDelay = 0.25,
-    HatchDelay = 0.25,
-
-    -- Bán pet
-    PetNoSell = {
-        'Red Panda',
-        'Griffin',
-        'Space Squirrel',
-        'Barn Owl',
-        'Swan',
-        'Wisp',
-        ['Shroomie'] = 8,
-        'Luminous Sprite',
-        'Phoenix',
-        'Cockatrice',
-        'Drake',
-        'Gnome',
-        'Green Bean',
-        'Apple Gazelle',
-        'Lemon Lion',
-        'Peach Wasp',
-        'Golden Goose',
-        'French Fry Ferret',
-        'Corrupted Kitsune',
-        'Raiju',
-        'Koi',
-        'Kitsune',
-        'Dilophosaurus',
-        'Moon Cat',
-        'Capybara',
-        'Chicken Zombie',
-        ['Sunny-Side Chicken'] = 8,
-        ['Rooster'] = 10,
-        'Spinosaurus',
-        ['Brown Mouse'] = 5,
-        ['Squirrel'] = 5,
-        ['Grey Mouse'] = 5,
-        'Bear Bee',
-        'T-Rex',
-        'Brontosaurus',
-        'Disco Bee',
-        'Butterfly',
-        'Queen Bee',
-        'Dragonfly',
-        'Raccoon',
-        'Fennec Fox',
-        'Mimic Octopus',
-        'Red Fox',
-        'Blood Owl',
-        ['Seal'] = 8,
-        ['Starfish'] = 8,
-    },
-    WeightLimit = 7, -- kg
-
-    -- Cho pet ăn
-    HungerThreshold = 0, -- dưới ngưỡng này sẽ cho ăn
-
-    -- Equip pet
-    PetUpLv = { ['Starfish'] = 1 },
-    PetPrioritize = { ['Rooster'] = 5, ['Tarantula Hawk'] = 1, ['Wasp'] = 1 },
-    PetRandom = { ['Wisp'] = 2 },
-
-    -- AutoBuy (chạy 1 pass / vòng)
-    AutoBuy = {
-        Seeds = {
-            ['Carrot'] = 10,
-            ['Strawberry'] = 10,
-            ['Blueberry'] = 10,
-            ['Orange Tulip'] = 10,
-            ['Tomato'] = 10,
-            ['Corn'] = 10,
-            ['Daffodil'] = 10,
-            ['Cauliflower'] = 10,
-            ['Watermelon'] = 10,
-            ['Rafflesia'] = 10,
-            ['Green Apple'] = 10,
-            ['Avocado'] = 10,
-            ['Banana'] = 10,
-            ['Pineapple'] = 10,
-            ['Kiwi'] = 10,
-            ['Bell Pepper'] = 10,
-            ['Prickly Pear'] = 10,
-            ['Loquat'] = 10,
-            ['Feijoa'] = 10,
-            ['Pitcher Plant'] = 10,
-            ['Pumpkin'] = 10,
-            ['Apple'] = 10,
-            ['Bamboo'] = 10,
-            ['Coconut'] = 10,
-            ['Cactus'] = 10,
-            ['Dragon Fruit'] = 10,
-            ['Mango'] = 10,
-            ['Grape'] = 10,
-            ['Mushroom'] = 10,
-            ['Pepper'] = 10,
-            ['Cacao'] = 10,
-            ['Beanstalk'] = 10,
-            ['Ember Lily'] = 10,
-            ['Sugar Apple'] = 10,
-            ['Burning Bud'] = 10,
-            ['Giant Pinecone'] = 10,
-            ['Elder Strawberry'] = 10,
-            ['Romanesco'] = 10,
-        },
-        Gears = {
-            ['Watering Can'] = 2,
-            'Trading Ticket',
-            'Trowel',
-            ['Basic Sprinkler'] = 1,
-            'Advanced Sprinkler',
-            'Godly Sprinkler',
-            'Master Sprinkler',
-            'Grandmaster Sprinkler',
-            'Recall Wrench',
-            'Magnifying Glass',
-            'Favorite Tool',
-            'Harvest Tool',
-            'Friendship Pot',
-            'Medium Toy',
-            'Medium Treat',
-            'Cleaning Spray',
-            'Cleansing Pet Shard',
-            'Levelup Lollipop',
-        },
-        Eggs = {
-            ['Common Egg'] = 5,
-            ['Uncommon Egg'] = 10,
-            'Rare Egg',
-            'Legendary Egg',
-            'Mythical Egg',
-            'Bug Egg',
-        },
-        EventShop = {
-            ['Turnip'] = 1,
-            ['Fall Seed Pack'] = 1,
-            ['Parsley'] = 1,
-            ['Meyer Lemon'] = 1,
-            ['Carnival Pumpkin'] = 1,
-            ['Kniphofia'] = 1,
-            ['Golden Peach'] = 1,
-            ['Maple Resin'] = 1,
-
-            -- ⚙️ Gear
-            ['Firefly Jar'] = 1,
-            ['Sky Lantern'] = 1,
-            ['Maple Leaf Kite'] = 1,
-            ['Leaf Blower'] = 1,
-            ['Maple Syrup'] = 1,
-            ['Maple Sprinkler'] = 1,
-            ['Bonfire'] = 1,
-            ['Harvest Basket'] = 1,
-            ['Maple Leaf Charm'] = 1,
-            ['Golden Acorn'] = 1,
-            ['Rake'] = 1,
-            ['Acorn Bell'] = 1,
-            ['Acorn Lollipop'] = 1,
-            ['Super Leaf Blower'] = 1,
-
-            -- 🐾 Pets & Eggs
-            ['Fall Egg'] = 1,
-            ['Chipmunk'] = 1,
-            ['Red Squirrel'] = 1,
-            ['Salmon'] = 1,
-            ['Marmot'] = 1,
-            ['Sugar Glider'] = 1,
-            ['Woodpecker'] = 1,
-            ['Space Squirrel'] = 1,
-            ['Mallard'] = 1,
-            ['Red Panda'] = 1,
-
-            -- 📦 Crates & Cosmetics
-            ['Fall Crate'] = 1,
-            ['Maple Crate'] = 1,
-            ['Fall Leaf Chair'] = 1,
-            ['Maple Flag'] = 1,
-            ['Fall Wreath'] = 1,
-            ['Fall Hay Bale'] = 1,
-            ['Pile Of Leaves'] = 1,
-            ['Flying Kite'] = 1,
-            ['Fall Fountain'] = 1,
-        },
-    },
-
-    -- Phá cây
-    MaxPlants = 300,
-    BreakList = { 'Carrot' },
-
-    -- Webhook (tùy chọn)
-    WebhookUrl = 'https://discord.com/api/webhooks/1367210306904002630/8gxmUF7Z5nQqSEtprqYz_VwWndHIf8n-bJb1a8u7ONVu6y7bXuUs24YFxhdkNr40gn_A',
-    SendAllPets = false,
-    PetFilter = {
-        'Swan',
-        'Phoenix',
-        'Golden Goose',
-        'French Fry Ferret',
-        'Cockatrice',
-        'Kitsune',
-        'Spinosaurus',
-        'T-Rex',
-        'Disco Bee',
-        'Butterfly',
-        'Mimic Octopus',
-        'Queen Bee',
-        'Fennec Fox',
-        'Dragonfly',
-        'Raccoon',
-        'Red Fox',
-    },
+-- 📜 Danh sách cây/quả Evo cần giữ nguyên
+local KeepEvo = {
+    ['Evo Beetroot I'] = true,
+    ['Evo Blueberry I'] = true,
+    ['Evo Pumpkin I'] = true,
+    ['Evo Mushroom I'] = true,
+    ['Evo Beetroot II'] = true,
+    ['Evo Blueberry II'] = true,
+    ['Evo Pumpkin II'] = true,
+    ['Evo Mushroom II'] = true,
+    ['Evo Beetroot III'] = true,
+    ['Evo Blueberry III'] = true,
+    ['Evo Pumpkin III'] = true,
+    ['Evo Mushroom III'] = true,
 }
 
+-- 🔧 Hàm xoá visual an toàn, giữ lại PrimaryPart và cây Evo
+local function clearPlantAndFruits(plant)
+    if KeepEvo[plant.Name] then
+        -- ✅ Nếu là cây Evo → giữ nguyên cả model + quả
+        return
+    end
+
+    for _, obj in ipairs(plant:GetChildren()) do
+        if tonumber(obj.Name) and obj.Name ~= 'PrimaryPart' then
+            warn('Xóa part cây:', obj:GetFullName())
+            obj:Destroy()
+        end
+        if obj.Name == 'Fruits' then
+            for _, fruit in ipairs(obj:GetChildren()) do
+                if KeepEvo[fruit.Name] then
+                    -- ✅ Nếu là quả Evo → giữ nguyên
+                    continue
+                end
+                for _, fchild in ipairs(fruit:GetChildren()) do
+                    if
+                        tonumber(fchild.Name)
+                        and fchild.Name ~= 'PrimaryPart'
+                    then
+                        warn('Xóa part quả:', fchild:GetFullName())
+                        fchild:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- 🚀 Vòng lặp chính
+spawn(function()
+    while task.wait(2) do
+        pcall(function()
+            -- ❌ Xoá toàn bộ con trong Lighting
+            for _, obj in ipairs(game:GetService('Lighting'):GetChildren()) do
+                warn('Xóa Lighting object:', obj.Name)
+                obj:Destroy()
+            end
+
+            -- ❌ Xoá toàn bộ con trong workspace.Debris
+            if workspace:FindFirstChild('Debris') then
+                for _, obj in ipairs(workspace.Debris:GetChildren()) do
+                    warn('Xóa Debris object:', obj.Name)
+                    obj:Destroy()
+                end
+            end
+
+            -- ❌ Xoá toàn bộ con trong workspace.Terrain
+            if workspace:FindFirstChild('Terrain') then
+                for _, obj in ipairs(workspace.Terrain:GetChildren()) do
+                    warn('Xóa Terrain object:', obj.Name)
+                    obj:Destroy()
+                end
+            end
+
+            -- 🔄 Clear Farms
+            for _, farm in workspace:GetChildren() do
+                if farm.Name == 'Farm' then
+                    for _, subFarm in ipairs(farm:GetChildren()) do
+                        if
+                            subFarm.Name == 'Farm'
+                            and subFarm:FindFirstChild('Important')
+                            and subFarm.Important:FindFirstChild('Data')
+                            and subFarm.Important.Data:FindFirstChild('Owner')
+                        then
+                            local isMine = (
+                                subFarm.Important.Data.Owner.Value
+                                == player.Name
+                            )
+
+                            -- ❌ Xoá farm người khác
+                            if not isMine then
+                                warn('Xóa farm khác:', subFarm.Name)
+                                subFarm:Destroy()
+                            end
+
+                            -- ✅ Farm của mình
+                            if isMine then
+                                if
+                                    subFarm.Important:FindFirstChild(
+                                        'Plants_Physical'
+                                    )
+                                then
+                                    for _, plant in
+                                        ipairs(
+                                            subFarm.Important.Plants_Physical:GetChildren()
+                                        )
+                                    do
+                                        clearPlantAndFruits(plant)
+                                    end
+                                end
+
+                                if
+                                    subFarm.Important:FindFirstChild(
+                                        'Decorations'
+                                    )
+                                then
+                                    for _, obj in
+                                        ipairs(
+                                            subFarm.Important.Decorations:GetChildren()
+                                        )
+                                    do
+                                        warn('Xóa deco:', obj.Name)
+                                        obj:Destroy()
+                                    end
+                                end
+
+                                if
+                                    subFarm.Important:FindFirstChild('Fences')
+                                then
+                                    for _, obj in
+                                        ipairs(
+                                            subFarm.Important.Fences:GetChildren()
+                                        )
+                                    do
+                                        warn('Xóa fence:', obj.Name)
+                                        obj:Destroy()
+                                    end
+                                end
+
+                                if
+                                    subFarm.Important:FindFirstChild(
+                                        'Cosmetics'
+                                    )
+                                then
+                                    for _, obj in
+                                        ipairs(
+                                            subFarm.Important.Cosmetics:GetChildren()
+                                        )
+                                    do
+                                        warn('Xóa cosmetic:', obj.Name)
+                                        obj:Destroy()
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
 -- ===============================
 -- 🔧 Services & Modules (dùng chung)
 -- ===============================
@@ -2406,168 +2568,5 @@ task.spawn(function()
             task.wait(0.5)
             submitFruit(fruit)
         end
-    end
-end)
-local player = game.Players.LocalPlayer
-
--- 📜 Danh sách cây/quả Evo cần giữ nguyên
-local KeepEvo = {
-    ['Evo Beetroot I'] = true,
-    ['Evo Blueberry I'] = true,
-    ['Evo Pumpkin I'] = true,
-    ['Evo Mushroom I'] = true,
-    ['Evo Beetroot II'] = true,
-    ['Evo Blueberry II'] = true,
-    ['Evo Pumpkin II'] = true,
-    ['Evo Mushroom II'] = true,
-    ['Evo Beetroot III'] = true,
-    ['Evo Blueberry III'] = true,
-    ['Evo Pumpkin III'] = true,
-    ['Evo Mushroom III'] = true,
-}
-
--- 🔧 Hàm xoá visual an toàn, giữ lại PrimaryPart và cây Evo
-local function clearPlantAndFruits(plant)
-    if KeepEvo[plant.Name] then
-        -- ✅ Nếu là cây Evo → giữ nguyên cả model + quả
-        return
-    end
-
-    for _, obj in ipairs(plant:GetChildren()) do
-        if tonumber(obj.Name) and obj.Name ~= 'PrimaryPart' then
-            warn('Xóa part cây:', obj:GetFullName())
-            obj:Destroy()
-        end
-        if obj.Name == 'Fruits' then
-            for _, fruit in ipairs(obj:GetChildren()) do
-                if KeepEvo[fruit.Name] then
-                    -- ✅ Nếu là quả Evo → giữ nguyên
-                    continue
-                end
-                for _, fchild in ipairs(fruit:GetChildren()) do
-                    if
-                        tonumber(fchild.Name)
-                        and fchild.Name ~= 'PrimaryPart'
-                    then
-                        warn('Xóa part quả:', fchild:GetFullName())
-                        fchild:Destroy()
-                    end
-                end
-            end
-        end
-    end
-end
-
--- 🚀 Vòng lặp chính
-spawn(function()
-    while task.wait(2) do
-        pcall(function()
-            -- ❌ Xoá toàn bộ con trong Lighting
-            for _, obj in ipairs(game:GetService('Lighting'):GetChildren()) do
-                warn('Xóa Lighting object:', obj.Name)
-                obj:Destroy()
-            end
-
-            -- ❌ Xoá toàn bộ con trong workspace.Debris
-            if workspace:FindFirstChild('Debris') then
-                for _, obj in ipairs(workspace.Debris:GetChildren()) do
-                    warn('Xóa Debris object:', obj.Name)
-                    obj:Destroy()
-                end
-            end
-
-            -- ❌ Xoá toàn bộ con trong workspace.Terrain
-            if workspace:FindFirstChild('Terrain') then
-                for _, obj in ipairs(workspace.Terrain:GetChildren()) do
-                    warn('Xóa Terrain object:', obj.Name)
-                    obj:Destroy()
-                end
-            end
-
-            -- 🔄 Clear Farms
-            for _, farm in workspace:GetChildren() do
-                if farm.Name == 'Farm' then
-                    for _, subFarm in ipairs(farm:GetChildren()) do
-                        if
-                            subFarm.Name == 'Farm'
-                            and subFarm:FindFirstChild('Important')
-                            and subFarm.Important:FindFirstChild('Data')
-                            and subFarm.Important.Data:FindFirstChild('Owner')
-                        then
-                            local isMine = (
-                                subFarm.Important.Data.Owner.Value
-                                == player.Name
-                            )
-
-                            -- ❌ Xoá farm người khác
-                            if not isMine then
-                                warn('Xóa farm khác:', subFarm.Name)
-                                subFarm:Destroy()
-                            end
-
-                            -- ✅ Farm của mình
-                            if isMine then
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Plants_Physical'
-                                    )
-                                then
-                                    for _, plant in
-                                        ipairs(
-                                            subFarm.Important.Plants_Physical:GetChildren()
-                                        )
-                                    do
-                                        clearPlantAndFruits(plant)
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Decorations'
-                                    )
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Decorations:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa deco:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild('Fences')
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Fences:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa fence:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Cosmetics'
-                                    )
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Cosmetics:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa cosmetic:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end)
     end
 end)
