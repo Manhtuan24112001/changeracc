@@ -307,16 +307,18 @@ getgenv().Config = {
     },
 }
 
+-- ===============================
+-- 🛡️ Anti-AFK Script (auto chạy luôn)
+-- ===============================
+
 local Players = game:GetService('Players')
 local VirtualUser = game:GetService('VirtualUser')
 local player = Players.LocalPlayer
 
 player.Idled:Connect(function()
     VirtualUser:CaptureController()
-    VirtualUser:SetKeyDown('W') -- nhấn phím W
-    task.wait(0.5) -- giữ 1 giây
-    VirtualUser:SetKeyUp('W') -- thả phím W
-    warn('✅ Anti-AFK: giả lập di chuyển lên, tránh bị kick')
+    VirtualUser:ClickButton2(Vector2.new())
+    warn('✅ Anti-AFK: giả lập click chuột, tránh bị kick')
 end)
 
 -- ===============================
