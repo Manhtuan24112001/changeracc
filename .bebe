@@ -1,26 +1,268 @@
+-- ===============================
+-- 🛡️ Anti-AFK Script (auto chạy luôn)
+-- ===============================
+
+local Players = game:GetService('Players')
+local VirtualUser = game:GetService('VirtualUser')
+local player = Players.LocalPlayer
+
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+    warn('✅ Anti-AFK: giả lập click chuột, tránh bị kick')
+end)
+
+-- ===============================
+-- 🔧 Services & Modules
+-- ===============================
+local RS = game:GetService('ReplicatedStorage')
+local Players = game:GetService('Players')
+local CollectionService = game:GetService('CollectionService')
+local HttpService = game:GetService('HttpService')
+local CoreGui = game:GetService('CoreGui')
+local player = Players.LocalPlayer
+
+local DataService = nil
+pcall(function()
+    DataService = require(RS.Modules.DataService)
+end)
+
+local ReplicatorClass = nil
+pcall(function()
+    ReplicatorClass = require(RS.Modules.ReplicationClass)
+end)
+
+local PetRegistry = nil
+pcall(function()
+    PetRegistry = require(RS.Data.PetRegistry)
+end)
+
+-- Replicators cho Pets
+local ActivePetsService, ActivePetStates, PlayerPetData
+if ReplicatorClass then
+    ActivePetsService = ReplicatorClass.new('ActivePetsService_Replicator')
+    pcall(function()
+        ActivePetsService:YieldUntilData()
+    end)
+    local tbl = ActivePetsService and ActivePetsService:YieldUntilData().Table
+        or {}
+    ActivePetStates = tbl.ActivePetStates or {}
+    PlayerPetData = tbl.PlayerPetData or {}
+end
+
+-- ===============================
+-- 🖼️ HUD UI Sucacheo
+-- ===============================
+local TimeHelper = nil
+pcall(function()
+    TimeHelper = require(RS.Modules.TimeHelper)
+end)
+
+local screenGui = Instance.new('ScreenGui')
+screenGui.Name = 'SucacheoHubUI'
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.DisplayOrder = 200 -- HUD luôn nổi trên overlay
+screenGui.Parent = CoreGui
+
+local hubTitle = Instance.new('TextLabel')
+hubTitle.Size = UDim2.new(1, 0, 0, 50)
+hubTitle.Position = UDim2.new(0, 0, 0, 10)
+hubTitle.BackgroundTransparency = 1
+hubTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+hubTitle.Font = Enum.Font.GothamBold
+hubTitle.TextSize = 24
+hubTitle.TextStrokeTransparency = 0.1
+hubTitle.Text = '🌟 Sucacheo Hub 🌟'
+hubTitle.ZIndex = 9999
+hubTitle.Parent = screenGui
+
+local status = Instance.new('TextLabel')
+status.Size = UDim2.new(0, 600, 0, 500)
+status.AnchorPoint = Vector2.new(0.5, 0)
+status.Position = UDim2.new(0.5, 0, 0.5, -200)
+status.BackgroundTransparency = 1
+status.TextColor3 = Color3.fromRGB(255, 215, 0)
+status.Font = Enum.Font.GothamBold
+status.TextSize = 24
+status.TextStrokeTransparency = 0.2
+status.TextXAlignment = Enum.TextXAlignment.Center
+status.TextYAlignment = Enum.TextYAlignment.Top
+status.TextWrapped = true
+status.Text = '🐣 Egg Farm Status\nLoading...'
+status.ZIndex = 9999
+status.Parent = screenGui
+
+-- ===============================
+-- 🔑 Extra Stats (pet, fruit, cây)
+-- ===============================
+local function getMyFarm()
+    for _, farm in ipairs(workspace:GetChildren()) do
+        if farm.Name == 'Farm' then
+            for _, subFarm in ipairs(farm:GetChildren()) do
+                if
+                    subFarm.Name == 'Farm'
+                    and subFarm:FindFirstChild('Important')
+                    and subFarm.Important:FindFirstChild('Data')
+                    and subFarm.Important.Data:FindFirstChild('Owner')
+                    and subFarm.Important.Data.Owner.Value == player.Name
+                then
+                    return subFarm
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function countAllPlants(myFarm)
+    if not myFarm then
+        return 0
+    end
+    local folder = myFarm.Important:FindFirstChild('Plants_Physical')
+    if not folder then
+        return 0
+    end
+    return #folder:GetChildren()
+end
+
+local function getExtraStats()
+    local equippedCount, backpackCount, fruitCount, plantCount = 0, 0, 0, 0
+    if PlayerPetData and ActivePetStates then
+        local pdata = PlayerPetData[player.Name]
+        local active = ActivePetStates[player.Name] or {}
+        if pdata then
+            for _ in pairs(active) do
+                equippedCount += 1
+            end
+            local total = 0
+            for _ in pairs(pdata.PetInventory.Data or {}) do
+                total += 1
+            end
+            backpackCount = total - equippedCount
+        end
+    end
+    for _, tool in ipairs(player.Backpack:GetChildren()) do
+        if tool:GetAttribute('b') == 'j' then
+            local q = tool:GetAttribute('Quantity') or 1
+            fruitCount += q
+        end
+    end
+    local myFarm = getMyFarm()
+    if myFarm then
+        plantCount = countAllPlants(myFarm)
+    end
+    return equippedCount, backpackCount, fruitCount, plantCount
+end
+
+-- ===============================
+-- 🔄 Update UI
+-- ===============================
+local function GetPlacedEggs()
+    local eggs = {}
+    for _, egg in ipairs(CollectionService:GetTagged('PetEggServer')) do
+        if egg:GetAttribute('EggName') then
+            table.insert(eggs, egg)
+        end
+    end
+    return eggs
+end
+
+local function GetMaxSlots()
+    local data = DataService and DataService:GetData()
+    local purchased = data and data.PetsData and data.PetsData.PurchasedEggSlots
+        or 0
+    return (purchased or 0) + 3
+end
+
+local function updateUI()
+    local eggs = GetPlacedEggs()
+    local maxSlots = GetMaxSlots()
+    local lines = {}
+    table.insert(lines, ('Slots: %d/%d'):format(#eggs, maxSlots))
+    table.insert(lines, '-------------------------')
+    for i, egg in ipairs(eggs) do
+        local name = egg:GetAttribute('EggName') or egg.Name
+        local t = egg:GetAttribute('TimeToHatch') or 0
+        local hatchText = (t == 0) and '✅ Ready'
+            or (
+                TimeHelper and TimeHelper:GenerateColonFormatFromTime(t)
+                or tostring(t)
+            )
+        table.insert(lines, ('[%d] %s | %s'):format(i, name, hatchText))
+    end
+    local equip, balo, fruits, plants = getExtraStats()
+    table.insert(lines, '-------------------------')
+    table.insert(lines, ('🐾 Pet equip: %d'):format(equip))
+    table.insert(lines, ('🎒 Pet balo: %d'):format(balo))
+    table.insert(lines, ('🍎 Fruit balo: %d'):format(fruits))
+    table.insert(lines, ('🌱 Cây trong vườn: %d'):format(plants))
+
+    status.Text = '🌟 Farm Status 🌟\n' .. table.concat(lines, '\n')
+end
+
+task.spawn(function()
+    while task.wait(3) do
+        pcall(updateUI)
+    end
+end)
+
+-- ===============================
+-- 📌 Overlay trắng + Nút toggle
+-- ===============================
+local overlayGui = Instance.new('ScreenGui')
+overlayGui.Name = 'FullScreenOverlay'
+overlayGui.IgnoreGuiInset = true
+overlayGui.ResetOnSpawn = false
+overlayGui.DisplayOrder = 50 -- dưới HUD
+overlayGui.Parent = game:GetService('CoreGui')
+
+local overlayFrame = Instance.new('Frame')
+overlayFrame.Size = UDim2.new(1, 0, 1, 0)
+overlayFrame.Position = UDim2.new(0, 0, 0, 0)
+overlayFrame.BorderSizePixel = 0
+overlayFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+overlayFrame.Visible = true -- mặc định luôn bật
+overlayFrame.Parent = overlayGui
+
+local toggleButton = Instance.new('TextButton')
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0.5, -25)
+toggleButton.BackgroundColor3 = Color3.new(1, 0, 0)
+toggleButton.Text = 'MT'
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 20
+toggleButton.Parent = overlayGui
+
+toggleButton.MouseButton1Click:Connect(function()
+    overlayFrame.Visible = not overlayFrame.Visible
+end)
+
 getgenv().RunningFarm = true
 -- ===============================
 -- 🌟 CONFIG CHUNG (bạn chỉnh tại đây)
 -- ===============================
 getgenv().Config = {
-    LoopInterval = 12, -- giây: mỗi vòng lặp tổng
+    LoopInterval = 0.1, -- giây: mỗi vòng lặp tổng
 
     -- Trồng cây
     Plant_Seeds = { -- target số lượng cây trong farm
-        ['Evo Beetroot I'] = 20,
-        ['Evo Blueberry I'] = 20,
-        ['Evo Pumpkin I'] = 20,
-        ['Evo Mushroom I'] = 20,
+        ['Evo Beetroot I'] = 40,
+        ['Evo Blueberry I'] = 40,
+        ['Evo Pumpkin I'] = 40,
+        ['Evo Mushroom I'] = 40,
 
-        ['Evo Beetroot II'] = 20,
-        ['Evo Blueberry II'] = 20,
-        ['Evo Pumpkin II'] = 20,
-        ['Evo Mushroom II'] = 20,
+        ['Evo Beetroot II'] = 30,
+        ['Evo Blueberry II'] = 30,
+        ['Evo Pumpkin II'] = 30,
+        ['Evo Mushroom II'] = 30,
 
-        ['Evo Beetroot III'] = 20,
-        ['Evo Blueberry III'] = 20,
-        ['Evo Pumpkin III'] = 20,
-        ['Evo Mushroom III'] = 20,
+        ['Evo Beetroot III'] = 30,
+        ['Evo Blueberry III'] = 30,
+        ['Evo Pumpkin III'] = 30,
+        ['Evo Mushroom III'] = 30,
         ['Carrot'] = 10,
         ['Turnip'] = 10,
         ['Parsley'] = 10,
@@ -308,523 +550,6 @@ getgenv().Config = {
     },
 }
 
--- ===============================
--- 🛡️ Anti-AFK Script (auto chạy luôn)
--- ===============================
-
-local Players = game:GetService('Players')
-local VirtualUser = game:GetService('VirtualUser')
-local player = Players.LocalPlayer
-
-player.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-    warn('✅ Anti-AFK: giả lập click chuột, tránh bị kick')
-end)
-
--- ===============================
--- 🔧 Services & Modules
--- ===============================
-local RS = game:GetService('ReplicatedStorage')
-local Players = game:GetService('Players')
-local CollectionService = game:GetService('CollectionService')
-local player = Players.LocalPlayer
-
-local DataService = nil
-pcall(function()
-    DataService = require(RS.Modules.DataService)
-end)
-
-local ReplicatorClass = nil
-pcall(function()
-    ReplicatorClass = require(RS.Modules.ReplicationClass)
-end)
-
-local TimeHelper = nil
-pcall(function()
-    TimeHelper = require(RS.Modules.TimeHelper)
-end)
-
--- Replicators cho Pets
-local ActivePetsService, ActivePetStates, PlayerPetData
-if ReplicatorClass then
-    ActivePetsService = ReplicatorClass.new('ActivePetsService_Replicator')
-    pcall(function()
-        ActivePetsService:YieldUntilData()
-    end)
-    local tbl = ActivePetsService and ActivePetsService:YieldUntilData().Table
-        or {}
-    ActivePetStates = tbl.ActivePetStates or {}
-    PlayerPetData = tbl.PlayerPetData or {}
-end
-
--- ===============================
--- 🖼️ HUD Base
--- ===============================
-local screenGui = Instance.new('ScreenGui')
-screenGui.Name = 'SucacheoHUD'
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-screenGui.DisplayOrder = 200
-screenGui.Parent = player:WaitForChild('PlayerGui')
-
--- Title
-local title = Instance.new('TextLabel')
-title.Size = UDim2.new(0, 400, 0, 40)
-title.Position = UDim2.new(0.5, -200, 0, 20)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.Arcade
-title.TextSize = 40
-title.TextColor3 = Color3.fromRGB(255, 255, 0)
-title.TextStrokeTransparency = 0
-title.Text = 'SUCACHEO HUD'
-title.Parent = screenGui
-
--- Player Name
-local playerName = Instance.new('TextLabel')
-playerName.Size = UDim2.new(0, 300, 0, 30)
-playerName.Position = UDim2.new(0.5, -150, 0, 70)
-playerName.BackgroundTransparency = 1
-playerName.Font = Enum.Font.Arcade
-playerName.TextSize = 22
-playerName.TextColor3 = Color3.fromRGB(255, 255, 150)
-playerName.TextStrokeTransparency = 0
-playerName.Text = player.Name
-playerName.Parent = screenGui
-
--- Container chính
-local mainFrame = Instance.new('Frame')
-mainFrame.Size = UDim2.new(0, 700, 0, 0)
-mainFrame.Position = UDim2.new(0.5, -350, 0, 110)
-mainFrame.BackgroundTransparency = 1
-mainFrame.AutomaticSize = Enum.AutomaticSize.Y
-mainFrame.Parent = screenGui
-
-local mainLayout = Instance.new('UIListLayout')
-mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
-mainLayout.Padding = UDim.new(0, 20)
-mainLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-mainLayout.Parent = mainFrame
-
--- Egg Header
-local eggHeader = Instance.new('TextLabel')
-eggHeader.Size = UDim2.new(1, 30, 0, 30)
-eggHeader.BackgroundTransparency = 1
-eggHeader.Font = Enum.Font.Arcade
-eggHeader.TextSize = 22
-eggHeader.TextColor3 = Color3.fromRGB(255, 255, 150)
-eggHeader.TextStrokeTransparency = 0
-eggHeader.Text = 'EGG 0/0'
-eggHeader.Parent = mainFrame
-
--- ===============================
--- 🥚 Egg List (UIGridLayout)
--- ===============================
-local eggFrame = Instance.new('Frame')
-eggFrame.Size = UDim2.new(1, -80, 0, 0)
-eggFrame.BackgroundTransparency = 1
-eggFrame.AutomaticSize = Enum.AutomaticSize.Y
-eggFrame.Parent = mainFrame
-
-local grid = Instance.new('UIGridLayout')
-grid.CellSize = UDim2.new(0.5, -30, 0, 30) -- mỗi slot cao 30px, chia 2 cột
-grid.CellPadding = UDim2.new(0, 10, 0, 5)
-grid.FillDirection = Enum.FillDirection.Horizontal
-grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-grid.SortOrder = Enum.SortOrder.LayoutOrder
-grid.Parent = eggFrame
-
--- ===============================
--- 📊 Stats (luôn dưới Egg)
--- ===============================
-local statsFrame = Instance.new('Frame')
-statsFrame.Size = UDim2.new(1, 0, 0, 100)
-statsFrame.BackgroundTransparency = 1
-statsFrame.Parent = mainFrame
-
-local function createStat(parent, imgId, pos, text)
-    local frame = Instance.new('Frame')
-    frame.Size = UDim2.new(0, 250, 0, 30)
-    frame.Position = pos
-    frame.BackgroundTransparency = 1
-    frame.Parent = parent
-
-    local icon = Instance.new('ImageLabel')
-    icon.Size = UDim2.new(0, 24, 0, 24)
-    icon.Position = UDim2.new(0, 0, 0.5, -12)
-    icon.BackgroundTransparency = 1
-    icon.Image = imgId
-    icon.Parent = frame
-
-    local lbl = Instance.new('TextLabel')
-    lbl.Size = UDim2.new(1, -30, 1, 0)
-    lbl.Position = UDim2.new(0, 30, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.Arcade
-    lbl.TextSize = 20
-    lbl.TextColor3 = Color3.fromRGB(255, 255, 150)
-    lbl.TextStrokeTransparency = 0
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Text = text
-    lbl.Parent = frame
-
-    return lbl
-end
-
--- ⚠️ thay asset ID thật
-local fruitLbl = createStat(
-    statsFrame,
-    'rbxassetid://FRUIT_ICON',
-    UDim2.new(0, 150, 0, 0),
-    'FRUIT : 0'
-)
-local petLbl = createStat(
-    statsFrame,
-    'rbxassetid://PET_ICON',
-    UDim2.new(0, 150, 0, 35),
-    'PET : 0'
-)
-local plantLbl = createStat(
-    statsFrame,
-    'rbxassetid://PLANT_ICON',
-    UDim2.new(1, -390, 0, 0),
-    'PLANT FARMA : 0'
-)
-local equipLbl = createStat(
-    statsFrame,
-    'rbxassetid://EQUIP_ICON',
-    UDim2.new(1, -390, 0, 35),
-    'PET EQUIP : 0'
-)
-
--- ===============================
--- 🔑 Extra Stats + Eggs
--- ===============================
-local function getMyFarm()
-    for _, farm in ipairs(workspace:GetChildren()) do
-        if farm.Name == 'Farm' then
-            for _, subFarm in ipairs(farm:GetChildren()) do
-                if
-                    subFarm.Name == 'Farm'
-                    and subFarm:FindFirstChild('Important')
-                    and subFarm.Important:FindFirstChild('Data')
-                    and subFarm.Important.Data:FindFirstChild('Owner')
-                    and subFarm.Important.Data.Owner.Value == player.Name
-                then
-                    return subFarm
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function countAllPlants(myFarm)
-    if not myFarm then
-        return 0
-    end
-    local folder = myFarm.Important:FindFirstChild('Plants_Physical')
-    if not folder then
-        return 0
-    end
-    return #folder:GetChildren()
-end
-
-local function getExtraStats()
-    local equippedCount, backpackCount, fruitCount, plantCount = 0, 0, 0, 0
-    if PlayerPetData and ActivePetStates then
-        local pdata = PlayerPetData[player.Name]
-        local active = ActivePetStates[player.Name] or {}
-        if pdata then
-            for _ in pairs(active) do
-                equippedCount += 1
-            end
-            local total = 0
-            for _ in pairs(pdata.PetInventory.Data or {}) do
-                total += 1
-            end
-            backpackCount = total - equippedCount
-        end
-    end
-    for _, tool in ipairs(player.Backpack:GetChildren()) do
-        if tool:GetAttribute('b') == 'j' then
-            fruitCount += (tool:GetAttribute('Quantity') or 1)
-        end
-    end
-    local myFarm = getMyFarm()
-    if myFarm then
-        plantCount = countAllPlants(myFarm)
-    end
-    return equippedCount, backpackCount, fruitCount, plantCount
-end
-
-local function GetPlacedEggs()
-    local eggs = {}
-    for _, egg in ipairs(CollectionService:GetTagged('PetEggServer')) do
-        if egg:GetAttribute('EggName') then
-            table.insert(eggs, egg)
-        end
-    end
-    return eggs
-end
-
-local function GetMaxSlots()
-    local data = DataService and DataService:GetData()
-    local purchased = data and data.PetsData and data.PetsData.PurchasedEggSlots
-        or 0
-    return (purchased or 0) + 3
-end
-
--- ===============================
--- 🔄 Update
--- ===============================
-local function updateEggList()
-    for _, c in ipairs(eggFrame:GetChildren()) do
-        if not c:IsA('UIGridLayout') then
-            c:Destroy()
-        end
-    end
-
-    local eggs = GetPlacedEggs()
-    local maxSlots = GetMaxSlots()
-    eggHeader.Text = ('EGG %d/%d'):format(#eggs, maxSlots)
-
-    for i = 1, maxSlots do
-        local egg = eggs[i]
-        local name, hatchText
-        if egg then
-            name = egg:GetAttribute('EggName') or egg.Name
-            local t = egg:GetAttribute('TimeToHatch') or 0
-            hatchText = (t == 0) and 'READY'
-                or (
-                    TimeHelper and TimeHelper:GenerateColonFormatFromTime(t)
-                    or tostring(t)
-                )
-        else
-            name, hatchText = '---', '---'
-        end
-
-        local slot = Instance.new('TextLabel')
-        slot.BackgroundTransparency = 1
-        slot.Font = Enum.Font.Arcade
-        slot.TextSize = 20
-        slot.TextColor3 = Color3.fromRGB(255, 255, 150)
-        slot.TextStrokeTransparency = 0
-        slot.TextXAlignment = Enum.TextXAlignment.Left
-        slot.Text = ('[%d] %s | %s'):format(i, name, hatchText)
-        slot.Parent = eggFrame
-    end
-end
-
-local function updateStats()
-    local equip, balo, fruits, plants = getExtraStats()
-    fruitLbl.Text = ('FRUIT : %d'):format(fruits)
-    petLbl.Text = ('PET : %d'):format(balo)
-    plantLbl.Text = ('PLANT : %d'):format(plants)
-    equipLbl.Text = ('PET EQUIP : %d'):format(equip)
-end
-
-task.spawn(function()
-    while task.wait(3) do
-        pcall(updateEggList)
-        pcall(updateStats)
-    end
-end)
-
--- ===============================
--- 📌 Overlay + Toggle
--- ===============================
-local overlayGui = Instance.new('ScreenGui')
-overlayGui.Name = 'FullScreenOverlay'
-overlayGui.IgnoreGuiInset = true
-overlayGui.ResetOnSpawn = false
-overlayGui.DisplayOrder = 50
-overlayGui.Parent = player:WaitForChild('PlayerGui')
-
-local overlayFrame = Instance.new('Frame')
-overlayFrame.Size = UDim2.new(1, 0, 1, 0)
-overlayFrame.BorderSizePixel = 0
-overlayFrame.BackgroundColor3 = Color3.new(0, 0, 0) -- đen
-overlayFrame.Visible = true
-overlayFrame.Parent = overlayGui
-
-local toggleButton = Instance.new('TextButton')
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
-toggleButton.Position = UDim2.new(0, 10, 0.5, -25)
-toggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
-toggleButton.Text = 'MT'
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Font = Enum.Font.Arcade
-toggleButton.TextSize = 20
-toggleButton.Parent = overlayGui
-
-toggleButton.MouseButton1Click:Connect(function()
-    overlayFrame.Visible = not overlayFrame.Visible
-end)
-local player = game.Players.LocalPlayer
-
--- 📜 Danh sách cây/quả Evo cần giữ nguyên
-local KeepEvo = {
-    ['Evo Beetroot I'] = true,
-    ['Evo Blueberry I'] = true,
-    ['Evo Pumpkin I'] = true,
-    ['Evo Mushroom I'] = true,
-    ['Evo Beetroot II'] = true,
-    ['Evo Blueberry II'] = true,
-    ['Evo Pumpkin II'] = true,
-    ['Evo Mushroom II'] = true,
-    ['Evo Beetroot III'] = true,
-    ['Evo Blueberry III'] = true,
-    ['Evo Pumpkin III'] = true,
-    ['Evo Mushroom III'] = true,
-}
-
--- 🔧 Hàm xoá visual an toàn, giữ lại PrimaryPart và cây Evo
-local function clearPlantAndFruits(plant)
-    if KeepEvo[plant.Name] then
-        -- ✅ Nếu là cây Evo → giữ nguyên cả model + quả
-        return
-    end
-
-    for _, obj in ipairs(plant:GetChildren()) do
-        if tonumber(obj.Name) and obj.Name ~= 'PrimaryPart' then
-            warn('Xóa part cây:', obj:GetFullName())
-            obj:Destroy()
-        end
-        if obj.Name == 'Fruits' then
-            for _, fruit in ipairs(obj:GetChildren()) do
-                if KeepEvo[fruit.Name] then
-                    -- ✅ Nếu là quả Evo → giữ nguyên
-                    continue
-                end
-                for _, fchild in ipairs(fruit:GetChildren()) do
-                    if
-                        tonumber(fchild.Name)
-                        and fchild.Name ~= 'PrimaryPart'
-                    then
-                        warn('Xóa part quả:', fchild:GetFullName())
-                        fchild:Destroy()
-                    end
-                end
-            end
-        end
-    end
-end
-
--- 🚀 Vòng lặp chính
-spawn(function()
-    while task.wait(2) do
-        pcall(function()
-            -- ❌ Xoá toàn bộ con trong Lighting
-            for _, obj in ipairs(game:GetService('Lighting'):GetChildren()) do
-                warn('Xóa Lighting object:', obj.Name)
-                obj:Destroy()
-            end
-
-            -- ❌ Xoá toàn bộ con trong workspace.Debris
-            if workspace:FindFirstChild('Debris') then
-                for _, obj in ipairs(workspace.Debris:GetChildren()) do
-                    warn('Xóa Debris object:', obj.Name)
-                    obj:Destroy()
-                end
-            end
-
-            -- ❌ Xoá toàn bộ con trong workspace.Terrain
-            if workspace:FindFirstChild('Terrain') then
-                for _, obj in ipairs(workspace.Terrain:GetChildren()) do
-                    warn('Xóa Terrain object:', obj.Name)
-                    obj:Destroy()
-                end
-            end
-
-            -- 🔄 Clear Farms
-            for _, farm in workspace:GetChildren() do
-                if farm.Name == 'Farm' then
-                    for _, subFarm in ipairs(farm:GetChildren()) do
-                        if
-                            subFarm.Name == 'Farm'
-                            and subFarm:FindFirstChild('Important')
-                            and subFarm.Important:FindFirstChild('Data')
-                            and subFarm.Important.Data:FindFirstChild('Owner')
-                        then
-                            local isMine = (
-                                subFarm.Important.Data.Owner.Value
-                                == player.Name
-                            )
-
-                            -- ❌ Xoá farm người khác
-                            if not isMine then
-                                warn('Xóa farm khác:', subFarm.Name)
-                                subFarm:Destroy()
-                            end
-
-                            -- ✅ Farm của mình
-                            if isMine then
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Plants_Physical'
-                                    )
-                                then
-                                    for _, plant in
-                                        ipairs(
-                                            subFarm.Important.Plants_Physical:GetChildren()
-                                        )
-                                    do
-                                        clearPlantAndFruits(plant)
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Decorations'
-                                    )
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Decorations:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa deco:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild('Fences')
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Fences:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa fence:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Cosmetics'
-                                    )
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Cosmetics:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa cosmetic:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
 -- ===============================
 -- 🔧 Services & Modules (dùng chung)
 -- ===============================
@@ -2571,5 +2296,168 @@ task.spawn(function()
             task.wait(0.5)
             submitFruit(fruit)
         end
+    end
+end)
+local player = game.Players.LocalPlayer
+
+-- 📜 Danh sách cây/quả Evo cần giữ nguyên
+local KeepEvo = {
+    ['Evo Beetroot I'] = true,
+    ['Evo Blueberry I'] = true,
+    ['Evo Pumpkin I'] = true,
+    ['Evo Mushroom I'] = true,
+    ['Evo Beetroot II'] = true,
+    ['Evo Blueberry II'] = true,
+    ['Evo Pumpkin II'] = true,
+    ['Evo Mushroom II'] = true,
+    ['Evo Beetroot III'] = true,
+    ['Evo Blueberry III'] = true,
+    ['Evo Pumpkin III'] = true,
+    ['Evo Mushroom III'] = true,
+}
+
+-- 🔧 Hàm xoá visual an toàn, giữ lại PrimaryPart và cây Evo
+local function clearPlantAndFruits(plant)
+    if KeepEvo[plant.Name] then
+        -- ✅ Nếu là cây Evo → giữ nguyên cả model + quả
+        return
+    end
+
+    for _, obj in ipairs(plant:GetChildren()) do
+        if tonumber(obj.Name) and obj.Name ~= 'PrimaryPart' then
+            warn('Xóa part cây:', obj:GetFullName())
+            obj:Destroy()
+        end
+        if obj.Name == 'Fruits' then
+            for _, fruit in ipairs(obj:GetChildren()) do
+                if KeepEvo[fruit.Name] then
+                    -- ✅ Nếu là quả Evo → giữ nguyên
+                    continue
+                end
+                for _, fchild in ipairs(fruit:GetChildren()) do
+                    if
+                        tonumber(fchild.Name)
+                        and fchild.Name ~= 'PrimaryPart'
+                    then
+                        warn('Xóa part quả:', fchild:GetFullName())
+                        fchild:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- 🚀 Vòng lặp chính
+spawn(function()
+    while task.wait(2) do
+        pcall(function()
+            -- ❌ Xoá toàn bộ con trong Lighting
+            for _, obj in ipairs(game:GetService('Lighting'):GetChildren()) do
+                warn('Xóa Lighting object:', obj.Name)
+                obj:Destroy()
+            end
+
+            -- ❌ Xoá toàn bộ con trong workspace.Debris
+            if workspace:FindFirstChild('Debris') then
+                for _, obj in ipairs(workspace.Debris:GetChildren()) do
+                    warn('Xóa Debris object:', obj.Name)
+                    obj:Destroy()
+                end
+            end
+
+            -- ❌ Xoá toàn bộ con trong workspace.Terrain
+            if workspace:FindFirstChild('Terrain') then
+                for _, obj in ipairs(workspace.Terrain:GetChildren()) do
+                    warn('Xóa Terrain object:', obj.Name)
+                    obj:Destroy()
+                end
+            end
+
+            -- 🔄 Clear Farms
+            for _, farm in workspace:GetChildren() do
+                if farm.Name == 'Farm' then
+                    for _, subFarm in ipairs(farm:GetChildren()) do
+                        if
+                            subFarm.Name == 'Farm'
+                            and subFarm:FindFirstChild('Important')
+                            and subFarm.Important:FindFirstChild('Data')
+                            and subFarm.Important.Data:FindFirstChild('Owner')
+                        then
+                            local isMine = (
+                                subFarm.Important.Data.Owner.Value
+                                == player.Name
+                            )
+
+                            -- ❌ Xoá farm người khác
+                            if not isMine then
+                                warn('Xóa farm khác:', subFarm.Name)
+                                subFarm:Destroy()
+                            end
+
+                            -- ✅ Farm của mình
+                            if isMine then
+                                if
+                                    subFarm.Important:FindFirstChild(
+                                        'Plants_Physical'
+                                    )
+                                then
+                                    for _, plant in
+                                        ipairs(
+                                            subFarm.Important.Plants_Physical:GetChildren()
+                                        )
+                                    do
+                                        clearPlantAndFruits(plant)
+                                    end
+                                end
+
+                                if
+                                    subFarm.Important:FindFirstChild(
+                                        'Decorations'
+                                    )
+                                then
+                                    for _, obj in
+                                        ipairs(
+                                            subFarm.Important.Decorations:GetChildren()
+                                        )
+                                    do
+                                        warn('Xóa deco:', obj.Name)
+                                        obj:Destroy()
+                                    end
+                                end
+
+                                if
+                                    subFarm.Important:FindFirstChild('Fences')
+                                then
+                                    for _, obj in
+                                        ipairs(
+                                            subFarm.Important.Fences:GetChildren()
+                                        )
+                                    do
+                                        warn('Xóa fence:', obj.Name)
+                                        obj:Destroy()
+                                    end
+                                end
+
+                                if
+                                    subFarm.Important:FindFirstChild(
+                                        'Cosmetics'
+                                    )
+                                then
+                                    for _, obj in
+                                        ipairs(
+                                            subFarm.Important.Cosmetics:GetChildren()
+                                        )
+                                    do
+                                        warn('Xóa cosmetic:', obj.Name)
+                                        obj:Destroy()
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
     end
 end)
