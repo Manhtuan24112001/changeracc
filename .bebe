@@ -344,6 +344,9 @@ getgenv().Config = {
 
     -- Bán pet
     PetNoSell = {
+        'Moth',
+        'Wasp',
+        'Tarantula Hawk',
         'Chubby Chipmunk',
         'Farmer Chipmunk',
         'Idol Chipmunk',
