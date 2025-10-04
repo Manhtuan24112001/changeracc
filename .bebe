@@ -344,6 +344,7 @@ getgenv().Config = {
 
     -- Bán pet
     PetNoSell = {
+        'Chubby Chipmunk',
         'Tiger',
         'Red Panda',
         'Griffin',
@@ -398,7 +399,7 @@ getgenv().Config = {
     HungerThreshold = 0, -- dưới ngưỡng này sẽ cho ăn
 
     -- Equip pet
-    PetUpLv = { ['Starfish'] = 1 },
+    PetUpLv = { ['Chubby Chipmunk'] = 2 },
     PetPrioritize = { ['Rooster'] = 5, ['Tarantula Hawk'] = 1, ['Wasp'] = 1 },
     PetRandom = { ['Wisp'] = 2 },
 
@@ -2108,196 +2109,6 @@ task.spawn(function()
         print('===== ✅ Kết thúc vòng farm =====')
     end
 end)
--- ===============================
--- 🛒 AUTO BUY EVENT SHOP (gốc, cố định Evo Seeds)
--- ===============================
-local RS = game:GetService('ReplicatedStorage')
-local BuyEventShop = RS.GameEvents:FindFirstChild('BuyEventShopStock')
-
-local function DoBuyShopEvent()
-    if not BuyEventShop then
-        warn('❌ Không tìm thấy remote BuyEventShopStock')
-        return
-    end
-
-    -- danh sách cố định
-    BuyEventShop:FireServer('Evo Beetroot I', 5)
-    BuyEventShop:FireServer('Evo Blueberry I', 5)
-    BuyEventShop:FireServer('Evo Pumpkin I', 5)
-    BuyEventShop:FireServer('Evo Mushroom I', 5)
-
-    print('✅ Đã gửi request mua tất cả Evo Seeds')
-end
-
--- 🔄 Auto loop mỗi 60 giây
-task.spawn(function()
-    while task.wait(60) do
-        DoBuyShopEvent()
-    end
-end)
-
--- ===============================
--- 🌟 FIXED SETTINGS (không cần config)
--- ===============================
-local Players = game:GetService('Players')
-local Rep = game:GetService('ReplicatedStorage')
-local ColServ = game:GetService('CollectionService')
-local localPlayer = Players.LocalPlayer
-local CollectRemote = Rep.GameEvents.Crops.Collect
-local SubmitRemote = Rep.GameEvents.TieredPlants.Submit
-
-local INTERVAL = 10 -- giãn cách check thu hoạch (giây)
-local FIRE_DELAY = 0.25 -- delay giữa mỗi lần FireServer
-local LIMIT = 200 -- số crop tối đa mỗi vòng
-local DEBUG = true -- in log
-
--- ===============================
--- 🔎 Tìm farm
--- ===============================
-local function getMyFarm()
-    for _, farm in ipairs(workspace:GetChildren()) do
-        if farm.Name == 'Farm' then
-            for _, subFarm in ipairs(farm:GetChildren()) do
-                if
-                    subFarm.Name == 'Farm'
-                    and subFarm:FindFirstChild('Important')
-                    and subFarm.Important:FindFirstChild('Data')
-                    and subFarm.Important.Data:FindFirstChild('Owner')
-                    and subFarm.Important.Data.Owner.Value
-                        == localPlayer.Name
-                then
-                    return subFarm
-                end
-            end
-        end
-    end
-    return nil
-end
-
--- 🔍 Check tag collect
-local function hasCollectTag(obj)
-    if type(obj.HasTag) == 'function' then
-        local ok, res = pcall(function()
-            return obj:HasTag('CollectPrompt')
-        end)
-        if ok then
-            return res
-        end
-    end
-    return ColServ:HasTag(obj, 'CollectPrompt')
-end
-
--- 📜 Danh sách trái Evo hợp lệ
-local evoFruits = {
-    'Evo Beetroot I',
-    'Evo Blueberry I',
-    'Evo Pumpkin I',
-    'Evo Mushroom I',
-    'Evo Beetroot II',
-    'Evo Blueberry II',
-    'Evo Pumpkin II',
-    'Evo Mushroom II',
-    'Evo Beetroot III',
-    'Evo Blueberry III',
-    'Evo Pumpkin III',
-    'Evo Mushroom III',
-}
-
-local function isEvoFruit(name)
-    for _, fname in ipairs(evoFruits) do
-        if string.find(name, fname) then
-            return true
-        end
-    end
-    return false
-end
-
--- 🌻 Thu hoạch cây Evo
-local function harvestEvo(limit)
-    local collected = 0
-    local myFarm = getMyFarm()
-    if not myFarm then
-        warn('❌ Không tìm thấy farm của bạn!')
-        return
-    end
-
-    for _, inst in ipairs(myFarm:GetDescendants()) do
-        if inst:IsA('ProximityPrompt') and hasCollectTag(inst) then
-            local crop = inst.Parent and inst.Parent.Parent
-            if crop and isEvoFruit(crop.Name) then
-                CollectRemote:FireServer({ crop })
-                if DEBUG then
-                    print('✅ Thu hoạch:', crop.Name)
-                end
-                collected += 1
-                task.wait(FIRE_DELAY)
-                if collected >= limit then
-                    return
-                end
-            else
-                if DEBUG and crop then
-                    print('⏭️ Bỏ qua:', crop.Name)
-                end
-            end
-        end
-    end
-end
-
--- 🧰 Equip đúng fruit có b=j
-local function equipCorrectFruit()
-    -- đang cầm
-    for _, tool in ipairs(localPlayer.Character:GetChildren()) do
-        if tool:IsA('Tool') and isEvoFruit(tool.Name) then
-            local attrs = tool:GetAttributes()
-            if attrs and attrs.b == 'j' then
-                return tool
-            end
-        end
-    end
-    -- trong backpack
-    for _, tool in ipairs(localPlayer.Backpack:GetChildren()) do
-        if tool:IsA('Tool') and isEvoFruit(tool.Name) then
-            local attrs = tool:GetAttributes()
-            if attrs and attrs.b == 'j' then
-                tool.Parent = localPlayer.Character
-                if DEBUG then
-                    print('📦 Auto cầm:', tool.Name)
-                end
-                return tool
-            end
-        end
-    end
-    return nil
-end
-
--- 🧾 Nộp fruit
-local function submitFruit(tool)
-    if tool and tool:IsA('Tool') then
-        SubmitRemote:FireServer('Held')
-        if DEBUG then
-            print('✅ Đã nộp:', tool.Name)
-        end
-    end
-end
-
--- ===============================
--- 🚀 Main loops
--- ===============================
-task.spawn(function()
-    while task.wait(INTERVAL) do
-        harvestEvo(LIMIT)
-    end
-end)
-
-task.spawn(function()
-    while task.wait(1) do
-        local fruit = equipCorrectFruit()
-        if fruit then
-            task.wait(0.5)
-            submitFruit(fruit)
-        end
-    end
-end)
 local player = game.Players.LocalPlayer
 
 -- 📜 Danh sách cây/quả Evo cần giữ nguyên
@@ -2461,3 +2272,23 @@ spawn(function()
         end)
     end
 end)
+local Players = game:GetService('Players')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local Events = ReplicatedStorage.GameEvents
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild('HumanoidRootPart')
+
+-- Loop xử lý
+while task.wait(1) do
+    -- 1. Gửi remote
+    local args = { [1] = 'All' }
+    Events.SubmitChipmunkFruit:FireServer(unpack(args))
+    Events.ClaimChipmunkPet:FireServer()
+
+    -- 2. Check & Teleport nếu Acorn xuất hiện
+    local acorn = workspace:FindFirstChild('Acorn')
+    if acorn and acorn:FindFirstChild('Acorn') then
+        hrp.CFrame = acorn.Acorn.CFrame + Vector3.new(0, 5, 0) -- dịch lên cao 5 để không kẹt
+    end
+end
