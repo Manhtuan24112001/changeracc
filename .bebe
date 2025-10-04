@@ -344,7 +344,9 @@ getgenv().Config = {
 
     -- Bán pet
     PetNoSell = {
-        'Chubby Chipmunk',
+        'Farmer Chipmunk',
+        'Idol Chipmunk',
+        'Chinchilla',
         'Tiger',
         'Red Panda',
         'Griffin',
