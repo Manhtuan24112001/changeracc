@@ -343,6 +343,7 @@ getgenv().Config = {
 
     -- Bán pet
     PetNoSell = {
+        'Fortune Squirrel',
         'Moth',
         'Wasp',
         'Tarantula Hawk',
