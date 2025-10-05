@@ -331,7 +331,7 @@ getgenv().Config = {
 
     -- Eggs (đặt & nở + ưu tiên khi thiếu pet)
     EggsPlant = {
-        { Name = 'Bug Egg', Amount = 6 },
+        { Name = 'Bug Egg', Amount = 8 },
         { Name = 'Rare Summer Egg', Amount = 2 },
     },
     PetNeedsPlant = { -- ví dụ: nếu Rooster < 9 thì ưu tiên Rare Egg
