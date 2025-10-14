@@ -2305,6 +2305,26 @@ local actions = {
     function()
         Events.BuyEventShopStock:FireServer('Reaper', 'Creepy Critters')
     end,
+
+    -- Thêm các lệnh mua vật phẩm bằng Spooky Seeds
+    function()
+        Events.BuyEventShopStock:FireServer('Bloodred Mushroom', 'Spooky Seeds')
+    end,
+    function()
+        Events.BuyEventShopStock:FireServer('Jack O Lantern', 'Spooky Seeds')
+    end,
+    function()
+        Events.BuyEventShopStock:FireServer('Ghoul Root', 'Spooky Seeds')
+    end,
+    function()
+        Events.BuyEventShopStock:FireServer('Chicken Feed', 'Spooky Seeds')
+    end,
+    function()
+        Events.BuyEventShopStock:FireServer('Seer Vine', 'Spooky Seeds')
+    end,
+    function()
+        Events.BuyEventShopStock:FireServer('Poison Apple', 'Spooky Seeds')
+    end,
 }
 
 -- Vòng lặp thực thi tuần tự (có delay an toàn)
@@ -2314,3 +2334,4 @@ while true do
         task.wait(10) -- delay nhỏ để tránh spam / timeout
     end
 end
+
