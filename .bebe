@@ -2115,81 +2115,120 @@ task.spawn(function()
 end)
 local player = game.Players.LocalPlayer
 
--- 📜 Danh sách cây/quả Evo cần giữ nguyên
-local KeepEvo = {
-    ['Evo Beetroot I'] = true,
-    ['Evo Blueberry I'] = true,
-    ['Evo Pumpkin I'] = true,
-    ['Evo Mushroom I'] = true,
-    ['Evo Beetroot II'] = true,
-    ['Evo Blueberry II'] = true,
-    ['Evo Pumpkin II'] = true,
-    ['Evo Mushroom II'] = true,
-    ['Evo Beetroot III'] = true,
-    ['Evo Blueberry III'] = true,
-    ['Evo Pumpkin III'] = true,
-    ['Evo Mushroom III'] = true,
+-- 📝 Danh sách đường dẫn thủ công muốn xoá
+local ManualPathsToDelete = {
+    'workspace.GardenCoinShop',
+    'workspace.Debris',
+    'workspace.Interaction.UpdateItems.WitchesBrewEvent.PotionShelf',
+    'workspace.Interaction.UpdateItems.WitchesBrewEvent.WitchesBrewLeaderboard',
+    'workspace.Interaction.UpdateItems.WitchesBrewEvent.WitchesBrewPlate',
+    'workspace.Interaction.UpdateItems.WitchesBrewEvent.Witch.Broom',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.Casket',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent["Devious Pumpkin"]',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.HalloweenEloise',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.HalloweenLights',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.HalloweenPlate',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.HalloweenSteven',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.Model1',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent:GetChildren()[11]',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.Model2',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.PumpkinLight',
+    'workspace.Interaction.UpdateItems.HalloweenMarketEvent.CandyCornSpecialCurrencyUIOverlap',
+    -- Thêm đường dẫn khác tại đây
 }
 
--- 🔧 Hàm xoá visual an toàn, giữ lại PrimaryPart và cây Evo
-local function clearPlantAndFruits(plant)
-    if KeepEvo[plant.Name] then
-        -- ✅ Nếu là cây Evo → giữ nguyên cả model + quả
-        return
-    end
+-- 🌟 Ẩn phần hiển thị của Part nhưng giữ nguyên Prompt + thư mục con
+local function hidePartVisualButKeepContents(part)
+    part.Transparency = 1
+    part.CastShadow = false
+    part.CanCollide = false
+    part.CanTouch = false
+    part.CanQuery = false
 
-    for _, obj in ipairs(plant:GetChildren()) do
-        if tonumber(obj.Name) and obj.Name ~= 'PrimaryPart' then
-            warn('Xóa part cây:', obj:GetFullName())
-            obj:Destroy()
-        end
-        if obj.Name == 'Fruits' then
-            for _, fruit in ipairs(obj:GetChildren()) do
-                if KeepEvo[fruit.Name] then
-                    -- ✅ Nếu là quả Evo → giữ nguyên
-                    continue
-                end
-                for _, fchild in ipairs(fruit:GetChildren()) do
-                    if
-                        tonumber(fchild.Name)
-                        and fchild.Name ~= 'PrimaryPart'
-                    then
-                        warn('Xóa part quả:', fchild:GetFullName())
-                        fchild:Destroy()
-                    end
-                end
-            end
+    -- Xoá các mesh / decal bên trong part (nếu có)
+    for _, child in ipairs(part:GetChildren()) do
+        if
+            child:IsA('SpecialMesh')
+            or child:IsA('Decal')
+            or child:IsA('MeshPart')
+            or child:IsA('UnionOperation')
+        then
+            child:Destroy()
         end
     end
 end
 
--- 🚀 Vòng lặp chính
+-- 🧹 Xoá phần hiển thị cây/quả, giữ Prompt & folder bên trong
+local function clearFolderVisualButKeepPrompt(folder)
+    for _, desc in ipairs(folder:GetDescendants()) do
+        if desc:IsA('BasePart') then
+            local prompt = desc:FindFirstChildWhichIsA('ProximityPrompt')
+            if prompt then
+                hidePartVisualButKeepContents(desc)
+            else
+                desc:Destroy()
+            end
+        elseif
+            desc:IsA('MeshPart')
+            or desc:IsA('UnionOperation')
+            or desc:IsA('Decal')
+        then
+            desc:Destroy()
+        end
+    end
+end
+
+-- 🌳 Hàm xử lý cây & quả
+local function clearPlantAndFruits(plant)
+    clearFolderVisualButKeepPrompt(plant)
+    local fruits = plant:FindFirstChild('Fruits')
+    if fruits then
+        for _, fruit in ipairs(fruits:GetChildren()) do
+            clearFolderVisualButKeepPrompt(fruit)
+        end
+    end
+end
+
+-- 🧼 Hàm xoá đường dẫn thủ công
+local function deleteManualPaths()
+    for _, path in ipairs(ManualPathsToDelete) do
+        local success, target = pcall(function()
+            return loadstring('return ' .. path)()
+        end)
+        if success and target then
+            warn('Xóa theo đường dẫn:', path)
+            target:Destroy()
+        end
+    end
+end
+
+-- 🧼 Vòng lặp dọn map cũ liên tục
 spawn(function()
     while task.wait(2) do
         pcall(function()
-            -- ❌ Xoá toàn bộ con trong Lighting
+            -- ❌ Xoá Lighting object
             for _, obj in ipairs(game:GetService('Lighting'):GetChildren()) do
-                warn('Xóa Lighting object:', obj.Name)
                 obj:Destroy()
             end
 
-            -- ❌ Xoá toàn bộ con trong workspace.Debris
+            -- ❌ Xoá Debris
             if workspace:FindFirstChild('Debris') then
                 for _, obj in ipairs(workspace.Debris:GetChildren()) do
-                    warn('Xóa Debris object:', obj.Name)
                     obj:Destroy()
                 end
             end
 
-            -- ❌ Xoá toàn bộ con trong workspace.Terrain
+            -- ❌ Xoá Terrain
             if workspace:FindFirstChild('Terrain') then
                 for _, obj in ipairs(workspace.Terrain:GetChildren()) do
-                    warn('Xóa Terrain object:', obj.Name)
                     obj:Destroy()
                 end
             end
 
-            -- 🔄 Clear Farms
+            -- 🧹 Xoá theo đường dẫn thủ công
+            deleteManualPaths()
+
+            -- 🌾 Dọn toàn bộ Farm
             for _, farm in workspace:GetChildren() do
                 if farm.Name == 'Farm' then
                     for _, subFarm in ipairs(farm:GetChildren()) do
@@ -2204,68 +2243,38 @@ spawn(function()
                                 == player.Name
                             )
 
-                            -- ❌ Xoá farm người khác
                             if not isMine then
-                                warn('Xóa farm khác:', subFarm.Name)
                                 subFarm:Destroy()
-                            end
+                            else
+                                local important = subFarm.Important
 
-                            -- ✅ Farm của mình
-                            if isMine then
+                                -- 🌿 Cây & quả
                                 if
-                                    subFarm.Important:FindFirstChild(
-                                        'Plants_Physical'
-                                    )
+                                    important:FindFirstChild('Plants_Physical')
                                 then
                                     for _, plant in
                                         ipairs(
-                                            subFarm.Important.Plants_Physical:GetChildren()
+                                            important.Plants_Physical:GetChildren()
                                         )
                                     do
                                         clearPlantAndFruits(plant)
                                     end
                                 end
 
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Decorations'
-                                    )
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Decorations:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa deco:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild('Fences')
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Fences:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa fence:', obj.Name)
-                                        obj:Destroy()
-                                    end
-                                end
-
-                                if
-                                    subFarm.Important:FindFirstChild(
-                                        'Cosmetics'
-                                    )
-                                then
-                                    for _, obj in
-                                        ipairs(
-                                            subFarm.Important.Cosmetics:GetChildren()
-                                        )
-                                    do
-                                        warn('Xóa cosmetic:', obj.Name)
-                                        obj:Destroy()
+                                -- 🧱 Deco, Fence, Cosmetic
+                                for _, folderName in ipairs({
+                                    'Decorations',
+                                    'Fences',
+                                    'Cosmetics',
+                                }) do
+                                    if important:FindFirstChild(folderName) then
+                                        for _, obj in
+                                            ipairs(
+                                                important[folderName]:GetChildren()
+                                            )
+                                        do
+                                            obj:Destroy()
+                                        end
                                     end
                                 end
                             end
@@ -2276,30 +2285,32 @@ spawn(function()
         end)
     end
 end)
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Events = ReplicatedStorage:WaitForChild("GameEvents")
+
+print('✅ Script đã thêm phần xoá đường dẫn thủ công 🌿✨')
+
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local Events = ReplicatedStorage:WaitForChild('GameEvents')
 
 -- Danh sách các lệnh (theo đúng thứ tự bạn muốn)
 local actions = {
     function()
-        Events.WitchesBrew.SubmitItemToCauldron:InvokeServer("All")
+        Events.WitchesBrew.SubmitItemToCauldron:InvokeServer('All')
     end,
     function()
-        Events.BuyEventShopStock:FireServer("Spooky Egg", "Creepy Critters")
+        Events.BuyEventShopStock:FireServer('Spooky Egg', 'Creepy Critters')
     end,
     function()
-        Events.BuyEventShopStock:FireServer("Reaper", "Creepy Critters")
+        Events.BuyEventShopStock:FireServer('Reaper', 'Creepy Critters')
     end,
     function()
-        Events.BuyEventShopStock:FireServer("Reaper", "Creepy Critters")
-    end
+        Events.BuyEventShopStock:FireServer('Reaper', 'Creepy Critters')
+    end,
 }
 
 -- Vòng lặp thực thi tuần tự (có delay an toàn)
 while true do
     for _, action in ipairs(actions) do
         action()
-        task.wait(10)  -- delay nhỏ để tránh spam / timeout
+        task.wait(10) -- delay nhỏ để tránh spam / timeout
     end
 end
-
