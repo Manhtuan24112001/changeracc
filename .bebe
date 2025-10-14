@@ -249,20 +249,12 @@ getgenv().Config = {
 
     -- Trồng cây
     Plant_Seeds = { -- target số lượng cây trong farm
-        ['Evo Beetroot I'] = 40,
-        ['Evo Blueberry I'] = 40,
-        ['Evo Pumpkin I'] = 40,
-        ['Evo Mushroom I'] = 40,
-
-        ['Evo Beetroot II'] = 30,
-        ['Evo Blueberry II'] = 30,
-        ['Evo Pumpkin II'] = 30,
-        ['Evo Mushroom II'] = 30,
-
-        ['Evo Beetroot III'] = 30,
-        ['Evo Blueberry III'] = 30,
-        ['Evo Pumpkin III'] = 30,
-        ['Evo Mushroom III'] = 30,
+        ['Bloodred Mushroom'] = 20,
+        ['Jack O Lantern'] = 20,
+        ['Ghoul Root'] = 20,
+        ['Chicken Feed'] = 20,
+        ['Seer Vine'] = 20,
+        ['Poison Apple'] = 20,
         ['Carrot'] = 10,
         ['Turnip'] = 10,
         ['Parsley'] = 10,
