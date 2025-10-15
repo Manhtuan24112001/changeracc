@@ -343,7 +343,6 @@ getgenv().Config = {
     -- Bán pet
     PetNoSell = {
         'Bat',
-        'Bone Dog',
         'Spider',
         'Pumpkin Rat',
         'Ghost Bear',
@@ -358,9 +357,7 @@ getgenv().Config = {
         'Chubby Chipmunk',
         'Chinchilla',
         'Tiger',
-        'Red Panda',
         'Griffin',
-        'Space Squirrel',
         'Barn Owl',
         'Swan',
         'Wisp',
