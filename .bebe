@@ -2307,31 +2307,10 @@ local actions = {
     function()
         Events.BuyEventShopStock:FireServer('Spooky Egg', 'Creepy Critters')
     end,
-    function()
-        Events.BuyEventShopStock:FireServer('Reaper', 'Creepy Critters')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Reaper', 'Creepy Critters')
-    end,
 
     -- Thêm các lệnh mua vật phẩm bằng Spooky Seeds
     function()
         Events.BuyEventShopStock:FireServer('Bloodred Mushroom', 'Spooky Seeds')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Jack O Lantern', 'Spooky Seeds')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Ghoul Root', 'Spooky Seeds')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Chicken Feed', 'Spooky Seeds')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Seer Vine', 'Spooky Seeds')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Poison Apple', 'Spooky Seeds')
     end,
 }
 
