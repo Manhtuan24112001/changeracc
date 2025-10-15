@@ -914,8 +914,8 @@ end
 -- ===============================
 -- 🌾 HARVEST FRUITS (from thu hoach trai bằng model) - single pass
 -- ===============================
-local YIELD_LIMIT = 40
-local HARVEST_DELAY = 1
+local YIELD_LIMIT = 100
+local HARVEST_DELAY = 0.5
 
 local function shouldSkipFruitModel(fruit)
     for _, bad in ipairs(getgenv().Config.skipFruit or {}) do
