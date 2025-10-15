@@ -411,7 +411,7 @@ getgenv().Config = {
     HungerThreshold = 0, -- dưới ngưỡng này sẽ cho ăn
 
     -- Equip pet
-    PetUpLv = { ['Chubby Chipmunk'] = 2 },
+    PetUpLv = { },
     PetPrioritize = { ['Rooster'] = 5, ['Tarantula Hawk'] = 1, ['Wasp'] = 1 },
     PetRandom = { ['Wisp'] = 2 },
 
