@@ -342,6 +342,15 @@ getgenv().Config = {
 
     -- Bán pet
     PetNoSell = {
+        'Bat',
+        'Bone Dog',
+        'Spider',
+        'Pumpkin Rat',
+        'Ghost Bear',
+        'Wolf',
+        'Black Cat',
+        'Reaper',
+        'Headless Horseman',
         'Fortune Squirrel',
         'Moth',
         'Wasp',
