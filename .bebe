@@ -411,7 +411,7 @@ getgenv().Config = {
     HungerThreshold = 0, -- dưới ngưỡng này sẽ cho ăn
 
     -- Equip pet
-    PetUpLv = { },
+    PetUpLv = {},
     PetPrioritize = { ['Rooster'] = 5, ['Tarantula Hawk'] = 1, ['Wasp'] = 1 },
     PetRandom = { ['Wisp'] = 2 },
 
@@ -914,7 +914,7 @@ end
 -- ===============================
 -- 🌾 HARVEST FRUITS (from thu hoach trai bằng model) - single pass
 -- ===============================
-local YIELD_LIMIT = 100
+local YIELD_LIMIT = 200
 local HARVEST_DELAY = 0.5
 
 local function shouldSkipFruitModel(fruit)
@@ -2318,7 +2318,7 @@ local actions = {
 while true do
     for _, action in ipairs(actions) do
         action()
-        task.wait(5) -- delay nhỏ để tránh spam / timeout
+        task.wait(10) -- delay nhỏ để tránh spam / timeout
     end
 end
 -- 🌾 AUTO HARVEST + TELE + EQUIP ĐÚNG TRÁI + SUBMIT EVENT 🎃
