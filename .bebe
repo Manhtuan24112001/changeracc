@@ -318,7 +318,14 @@ getgenv().Config = {
     },
 
     -- Fruit
-    skipFruit = { 'Bloodred Mushroom','Jack O Lantern','Ghoul Root','Chicken Feed','Seer Vine','Poison Apple' }, -- bỏ qua tên fruit
+    skipFruit = {
+        'Bloodred Mushroom',
+        'Jack O Lantern',
+        'Ghoul Root',
+        'Chicken Feed',
+        'Seer Vine',
+        'Poison Apple',
+    }, -- bỏ qua tên fruit
     skipMutation = { 'Glimmering', 'Golden' }, -- bỏ qua mutation
 
     -- Eggs (đặt & nở + ưu tiên khi thiếu pet)
@@ -898,8 +905,8 @@ end
 -- ===============================
 -- 🌾 HARVEST FRUITS (from thu hoach trai bằng model) - single pass
 -- ===============================
-local YIELD_LIMIT = 100
-local HARVEST_DELAY = 0.5
+local YIELD_LIMIT = 40
+local HARVEST_DELAY = 1
 
 local function shouldSkipFruitModel(fruit)
     for _, bad in ipairs(getgenv().Config.skipFruit or {}) do
@@ -2496,4 +2503,3 @@ task.spawn(function()
         end
     end
 end)
-
