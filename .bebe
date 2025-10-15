@@ -2318,7 +2318,7 @@ local actions = {
 while true do
     for _, action in ipairs(actions) do
         action()
-        task.wait(10) -- delay nhỏ để tránh spam / timeout
+        task.wait(5) -- delay nhỏ để tránh spam / timeout
     end
 end
 -- 🌾 AUTO HARVEST + TELE + EQUIP ĐÚNG TRÁI + SUBMIT EVENT 🎃
