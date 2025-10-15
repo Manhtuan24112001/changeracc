@@ -326,7 +326,7 @@ getgenv().Config = {
         'Seer Vine',
         'Poison Apple',
     }, -- bỏ qua tên fruit
-    skipMutation = { 'Glimmering', 'Golden' }, -- bỏ qua mutation
+    skipMutation = { 'Glimmering', 'Golden', 'Vamp' }, -- bỏ qua mutation
 
     -- Eggs (đặt & nở + ưu tiên khi thiếu pet)
     EggsPlant = {
@@ -343,6 +343,7 @@ getgenv().Config = {
     -- Bán pet
     PetNoSell = {
         'Bat',
+        'Bone Dog',
         'Spider',
         'Pumpkin Rat',
         'Ghost Bear',
@@ -357,7 +358,9 @@ getgenv().Config = {
         'Chubby Chipmunk',
         'Chinchilla',
         'Tiger',
+        'Red Panda',
         'Griffin',
+        'Space Squirrel',
         'Barn Owl',
         'Swan',
         'Wisp',
@@ -2293,10 +2296,12 @@ end)
 
 print('✅ Script đã thêm phần xoá đường dẫn thủ công 🌿✨')
 
+--------------------------------------------------
+-- 🛒 Vòng lặp mua đồ sự kiện (KHÔNG CHẶN CODE)
+--------------------------------------------------
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local Events = ReplicatedStorage:WaitForChild('GameEvents')
 
--- Danh sách các lệnh (theo đúng thứ tự bạn muốn)
 local actions = {
     function()
         Events.WitchesBrew.SubmitItemToCauldron:InvokeServer('All')
@@ -2304,65 +2309,97 @@ local actions = {
     function()
         Events.BuyEventShopStock:FireServer('Spooky Egg', 'Creepy Critters')
     end,
-
-    -- Thêm các lệnh mua vật phẩm bằng Spooky Seeds
     function()
         Events.BuyEventShopStock:FireServer('Bloodred Mushroom', 'Spooky Seeds')
     end,
 }
 
--- Vòng lặp thực thi tuần tự (có delay an toàn)
-while true do
-    for _, action in ipairs(actions) do
-        action()
-        task.wait(10) -- delay nhỏ để tránh spam / timeout
-    end
-end
--- 🌾 AUTO HARVEST + TELE + EQUIP ĐÚNG TRÁI + SUBMIT EVENT 🎃
-local Players = game:GetService('Players')
-local Rep = game:GetService('ReplicatedStorage')
-local Workspace = game:GetService('Workspace')
-local ColServ = game:GetService('CollectionService')
-
-local LocalPlayer = Players.LocalPlayer
-local CollectRemote = Rep.GameEvents.Crops.Collect
-local SubmitEvent = Rep.GameEvents.SubmitJackOLanternItem
-
-----------------------------------------------------------------------
--- 📌 Danh sách trái cần thu hoạch & nộp
-----------------------------------------------------------------------
-local harvestFruitList = {
-    'Bloodred Mushroom',
-    'Jack O Lantern',
-    'Ghoul Root',
-    'Chicken Feed',
-    'Seer Vine',
-    'Poison Apple',
-}
-
-----------------------------------------------------------------------
--- 🧭 LẤY NPC + TELEPORT
-----------------------------------------------------------------------
-local function getPumpkinNPC()
-    local tagged = ColServ:GetTagged('PumpkinNPC')
-    return tagged[1]
-end
-
-local function teleportToNPC(npc)
-    if npc and npc:FindFirstChild('HumanoidRootPart') then
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild('HumanoidRootPart') then
-            char.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame
-                + Vector3.new(0, 0, -5)
+task.spawn(function()
+    while true do
+        for _, action in ipairs(actions) do
+            pcall(action)
+            task.wait(10) -- tránh spam
         end
     end
+end)
+
+--------------------------------------------------
+-- 🌾 CONFIG SỰ KIỆN (local, không getgenv)
+--------------------------------------------------
+local ConfigEvent = {
+    enableSkipFruit = false,
+    enableSkipMutation = false,
+    enableHarvestFruit = true,
+    enableHarvestMutation = true,
+
+    skipFruitList = { 'Weed', 'StoneFruit' },
+    skipMutationList = { 'Golden' },
+
+    harvestFruitList = {
+        'Bloodred Mushroom',
+        'Jack O Lantern',
+        'Ghoul Root',
+        'Chicken Feed',
+        'Seer Vine',
+        'Poison Apple',
+    },
+    harvestMutationList = { 'Vamp' },
+}
+
+--------------------------------------------------
+-- 🌿 Services & Const
+--------------------------------------------------
+local Players = game:GetService('Players')
+local Rep = game:GetService('ReplicatedStorage')
+local ColServ = game:GetService('CollectionService')
+local Workspace = game:GetService('Workspace')
+
+local localPlayer = Players.LocalPlayer
+local CollectRemote = Rep.GameEvents.Crops.Collect
+local SubmitRemoteEvent = Rep.GameEvents.SubmitJackOLanternItem
+
+local INTERVAL = 10
+local FIRE_DELAY = 0.25
+local LIMIT = 100
+local DEBUG = true
+
+-- Thời gian sự kiện
+local EVENT_CYCLE = 7200 -- 2 tiếng 1 vòng
+local EVENT_WINDOW = 600 -- Sự kiện trong 10 phút đầu
+
+--------------------------------------------------
+-- 🕒 Kiểm tra sự kiện Halloween đang diễn ra
+--------------------------------------------------
+local function isEventActive()
+    local currentTime = Workspace:GetServerTimeNow()
+    local cycleTime = currentTime % EVENT_CYCLE
+    local active = (cycleTime <= EVENT_WINDOW)
+
+    if DEBUG then
+        if active then
+            print(
+                string.format(
+                    '🎃 Sự kiện đang diễn ra (%.1fs sau spawn)',
+                    cycleTime
+                )
+            )
+        else
+            print(
+                string.format(
+                    '⏳ Ngoài giờ sự kiện — còn %.1fs nữa',
+                    EVENT_CYCLE - cycleTime
+                )
+            )
+        end
+    end
+    return active
 end
 
-----------------------------------------------------------------------
--- 🌱 LẤY FARM CỦA NGƯỜI CHƠI
-----------------------------------------------------------------------
+--------------------------------------------------
+-- 🌿 Farm Helper
+--------------------------------------------------
 local function getMyFarm()
-    for _, farm in ipairs(Workspace:GetChildren()) do
+    for _, farm in ipairs(workspace:GetChildren()) do
         if farm.Name == 'Farm' then
             for _, subFarm in ipairs(farm:GetChildren()) do
                 if
@@ -2371,7 +2408,7 @@ local function getMyFarm()
                     and subFarm.Important:FindFirstChild('Data')
                     and subFarm.Important.Data:FindFirstChild('Owner')
                     and subFarm.Important.Data.Owner.Value
-                        == LocalPlayer.Name
+                        == localPlayer.Name
                 then
                     return subFarm
                 end
@@ -2381,110 +2418,184 @@ local function getMyFarm()
     return nil
 end
 
-----------------------------------------------------------------------
--- ✅ Kiểm tra trái có trong danh sách không
-----------------------------------------------------------------------
-local function isHarvestTarget(name)
-    for _, target in ipairs(harvestFruitList) do
-        if name == target then
+local function hasCollectTag(obj)
+    if type(obj.HasTag) == 'function' then
+        local ok, res = pcall(function()
+            return obj:HasTag('CollectPrompt')
+        end)
+        if ok then
+            return res
+        end
+    end
+    return ColServ:HasTag(obj, 'CollectPrompt')
+end
+
+--------------------------------------------------
+-- 🧠 Kiểm tra config harvest
+--------------------------------------------------
+local function isFruitSkipped(crop)
+    if not ConfigEvent.enableSkipFruit then
+        return false
+    end
+    for _, bad in ipairs(ConfigEvent.skipFruitList) do
+        if crop.Name == bad then
             return true
         end
     end
     return false
 end
 
-----------------------------------------------------------------------
--- 🌾 THU HOẠCH TRÁI TRONG DANH SÁCH
-----------------------------------------------------------------------
-local function harvestAll(limit)
-    local farm = getMyFarm()
-    if not farm then
-        warn('❌ Không tìm thấy farm!')
+local function hasSkippedMutation(crop)
+    if not ConfigEvent.enableSkipMutation then
+        return false
+    end
+    for _, bad in ipairs(ConfigEvent.skipMutationList) do
+        if crop:GetAttribute(bad) then
+            return true
+        end
+    end
+    return false
+end
+
+local function isFruitHarvestTarget(crop)
+    if not ConfigEvent.enableHarvestFruit then
+        return false
+    end
+    for _, target in ipairs(ConfigEvent.harvestFruitList) do
+        if crop.Name == target then
+            return true
+        end
+    end
+    return false
+end
+
+local function hasHarvestMutation(crop)
+    if not ConfigEvent.enableHarvestMutation then
+        return false
+    end
+    for _, attr in ipairs(ConfigEvent.harvestMutationList) do
+        if crop:GetAttribute(attr) then
+            return true
+        end
+    end
+    return false
+end
+
+--------------------------------------------------
+-- 🌿 Thu hoạch event
+--------------------------------------------------
+local function harvestConfigured(limit)
+    if not isEventActive() then
         return
     end
 
-    local count = 0
+    local farm = getMyFarm()
+    if not farm then
+        if DEBUG then
+            warn('❌ Không tìm thấy farm của bạn!')
+        end
+        return
+    end
+
+    local collected = 0
     for _, inst in ipairs(farm:GetDescendants()) do
-        if
-            inst:IsA('ProximityPrompt')
-            and ColServ:HasTag(inst, 'CollectPrompt')
-        then
+        if inst:IsA('ProximityPrompt') and hasCollectTag(inst) then
             local crop = inst.Parent and inst.Parent.Parent
-            if crop and isHarvestTarget(crop.Name) then
-                CollectRemote:FireServer({ crop })
-                print('✅ Thu hoạch:', crop.Name)
-                task.wait(0.5)
-                count += 1
-                if count >= limit then
-                    break
+            if crop then
+                if
+                    not isFruitSkipped(crop) and not hasSkippedMutation(crop)
+                then
+                    if
+                        isFruitHarvestTarget(crop) or hasHarvestMutation(crop)
+                    then
+                        pcall(function()
+                            CollectRemote:FireServer({ crop })
+                        end)
+                        if DEBUG then
+                            print('✅ Thu hoạch:', crop.Name)
+                        end
+                        collected += 1
+                        task.wait(FIRE_DELAY)
+                        if collected >= limit then
+                            return
+                        end
+                    elseif DEBUG then
+                        print('⏸ Không trong harvest list:', crop.Name)
+                    end
+                elseif DEBUG then
+                    print('⏭ Bỏ qua:', crop.Name)
                 end
             end
         end
     end
 end
 
-----------------------------------------------------------------------
--- 🕒 KIỂM TRA NPC CÓ SPAWN KHÔNG
-----------------------------------------------------------------------
-local function isNPCSpawned()
-    local currentTime = Workspace:GetServerTimeNow()
-    local cycleTime = currentTime % 7200
-    return cycleTime <= 600
-end
-
-----------------------------------------------------------------------
--- 🧰 EQUIP ĐÚNG TRÁI TRONG DANH SÁCH TỪ BACKPACK
-----------------------------------------------------------------------
-local function equipHarvestFruit()
-    local backpack = LocalPlayer:FindFirstChild('Backpack')
-    local char = LocalPlayer.Character
-    if not backpack or not char then
+--------------------------------------------------
+-- 🧰 Equip tool “Vamp” + Nộp sự kiện
+--------------------------------------------------
+local function isVampTool(tool)
+    if not tool:IsA('Tool') then
         return false
     end
-
-    for _, tool in ipairs(backpack:GetChildren()) do
-        if tool:IsA('Tool') and isHarvestTarget(tool.Name) then
-            tool.Parent = char
-            print('🍎 Equip trái:', tool.Name)
+    if string.find(tool.Name, 'Vamp') then
+        return true
+    end
+    for k, v in pairs(tool:GetAttributes()) do
+        if tostring(k):find('Vamp') or tostring(v):find('Vamp') then
             return true
         end
     end
     return false
 end
 
-----------------------------------------------------------------------
--- 🎃 GỬI YÊU CẦU NỘP
-----------------------------------------------------------------------
-local function submitHeldItem()
-    SubmitEvent:FireServer('Held')
-    print('🎃 Đã nộp trái vào sự kiện')
+local function findAndEquipVampTool()
+    local char = localPlayer.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if isVampTool(tool) then
+                return tool
+            end
+        end
+    end
+    local backpack = localPlayer:FindFirstChildOfClass('Backpack')
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if isVampTool(tool) then
+                tool.Parent = char
+                return tool
+            end
+        end
+    end
 end
 
-----------------------------------------------------------------------
--- 🚀 MAIN LOOP
-----------------------------------------------------------------------
+local function submitEvent(tool)
+    if tool and tool:IsA('Tool') then
+        pcall(function()
+            SubmitRemoteEvent:FireServer('Held')
+        end)
+        if DEBUG then
+            print('🎁 Nộp EVENT:', tool.Name)
+        end
+    end
+end
+
+--------------------------------------------------
+-- 🚀 Event Harvest Loop (song song)
+--------------------------------------------------
 task.spawn(function()
-    while task.wait(10) do
-        if isNPCSpawned() then
-            print('🎃 NPC spawn → Thu hoạch + Tele + Equip + Nộp')
+    while task.wait(INTERVAL) do
+        harvestConfigured(LIMIT)
+    end
+end)
 
-            harvestAll(10)
-            task.wait(1)
-
-            local npc = getPumpkinNPC()
-            teleportToNPC(npc)
-            task.wait(1)
-
-            if equipHarvestFruit() then
+task.spawn(function()
+    while task.wait(1) do
+        if isEventActive() then
+            local vampTool = findAndEquipVampTool()
+            if vampTool then
                 task.wait(0.5)
-                submitHeldItem()
-            else
-                print(
-                    '⚠️ Không có trái hợp lệ trong Backpack để nộp'
-                )
+                submitEvent(vampTool)
             end
-        else
-            print('⏳ NPC chưa spawn...')
         end
     end
 end)
