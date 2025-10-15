@@ -318,7 +318,7 @@ getgenv().Config = {
     },
 
     -- Fruit
-    skipFruit = { 'Weed', 'StoneFruit' }, -- bỏ qua tên fruit
+    skipFruit = { 'Bloodred Mushroom','Jack O Lantern','Ghoul Root','Chicken Feed','Seer Vine','Poison Apple' }, -- bỏ qua tên fruit
     skipMutation = { 'Glimmering', 'Golden' }, -- bỏ qua mutation
 
     -- Eggs (đặt & nở + ưu tiên khi thiếu pet)
@@ -2326,4 +2326,174 @@ while true do
         task.wait(10) -- delay nhỏ để tránh spam / timeout
     end
 end
+-- 🌾 AUTO HARVEST + TELE + EQUIP ĐÚNG TRÁI + SUBMIT EVENT 🎃
+local Players = game:GetService('Players')
+local Rep = game:GetService('ReplicatedStorage')
+local Workspace = game:GetService('Workspace')
+local ColServ = game:GetService('CollectionService')
+
+local LocalPlayer = Players.LocalPlayer
+local CollectRemote = Rep.GameEvents.Crops.Collect
+local SubmitEvent = Rep.GameEvents.SubmitJackOLanternItem
+
+----------------------------------------------------------------------
+-- 📌 Danh sách trái cần thu hoạch & nộp
+----------------------------------------------------------------------
+local harvestFruitList = {
+    'Bloodred Mushroom',
+    'Jack O Lantern',
+    'Ghoul Root',
+    'Chicken Feed',
+    'Seer Vine',
+    'Poison Apple',
+}
+
+----------------------------------------------------------------------
+-- 🧭 LẤY NPC + TELEPORT
+----------------------------------------------------------------------
+local function getPumpkinNPC()
+    local tagged = ColServ:GetTagged('PumpkinNPC')
+    return tagged[1]
+end
+
+local function teleportToNPC(npc)
+    if npc and npc:FindFirstChild('HumanoidRootPart') then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild('HumanoidRootPart') then
+            char.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame
+                + Vector3.new(0, 0, -5)
+        end
+    end
+end
+
+----------------------------------------------------------------------
+-- 🌱 LẤY FARM CỦA NGƯỜI CHƠI
+----------------------------------------------------------------------
+local function getMyFarm()
+    for _, farm in ipairs(Workspace:GetChildren()) do
+        if farm.Name == 'Farm' then
+            for _, subFarm in ipairs(farm:GetChildren()) do
+                if
+                    subFarm.Name == 'Farm'
+                    and subFarm:FindFirstChild('Important')
+                    and subFarm.Important:FindFirstChild('Data')
+                    and subFarm.Important.Data:FindFirstChild('Owner')
+                    and subFarm.Important.Data.Owner.Value
+                        == LocalPlayer.Name
+                then
+                    return subFarm
+                end
+            end
+        end
+    end
+    return nil
+end
+
+----------------------------------------------------------------------
+-- ✅ Kiểm tra trái có trong danh sách không
+----------------------------------------------------------------------
+local function isHarvestTarget(name)
+    for _, target in ipairs(harvestFruitList) do
+        if name == target then
+            return true
+        end
+    end
+    return false
+end
+
+----------------------------------------------------------------------
+-- 🌾 THU HOẠCH TRÁI TRONG DANH SÁCH
+----------------------------------------------------------------------
+local function harvestAll(limit)
+    local farm = getMyFarm()
+    if not farm then
+        warn('❌ Không tìm thấy farm!')
+        return
+    end
+
+    local count = 0
+    for _, inst in ipairs(farm:GetDescendants()) do
+        if
+            inst:IsA('ProximityPrompt')
+            and ColServ:HasTag(inst, 'CollectPrompt')
+        then
+            local crop = inst.Parent and inst.Parent.Parent
+            if crop and isHarvestTarget(crop.Name) then
+                CollectRemote:FireServer({ crop })
+                print('✅ Thu hoạch:', crop.Name)
+                task.wait(0.5)
+                count += 1
+                if count >= limit then
+                    break
+                end
+            end
+        end
+    end
+end
+
+----------------------------------------------------------------------
+-- 🕒 KIỂM TRA NPC CÓ SPAWN KHÔNG
+----------------------------------------------------------------------
+local function isNPCSpawned()
+    local currentTime = Workspace:GetServerTimeNow()
+    local cycleTime = currentTime % 7200
+    return cycleTime <= 600
+end
+
+----------------------------------------------------------------------
+-- 🧰 EQUIP ĐÚNG TRÁI TRONG DANH SÁCH TỪ BACKPACK
+----------------------------------------------------------------------
+local function equipHarvestFruit()
+    local backpack = LocalPlayer:FindFirstChild('Backpack')
+    local char = LocalPlayer.Character
+    if not backpack or not char then
+        return false
+    end
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA('Tool') and isHarvestTarget(tool.Name) then
+            tool.Parent = char
+            print('🍎 Equip trái:', tool.Name)
+            return true
+        end
+    end
+    return false
+end
+
+----------------------------------------------------------------------
+-- 🎃 GỬI YÊU CẦU NỘP
+----------------------------------------------------------------------
+local function submitHeldItem()
+    SubmitEvent:FireServer('Held')
+    print('🎃 Đã nộp trái vào sự kiện')
+end
+
+----------------------------------------------------------------------
+-- 🚀 MAIN LOOP
+----------------------------------------------------------------------
+task.spawn(function()
+    while task.wait(10) do
+        if isNPCSpawned() then
+            print('🎃 NPC spawn → Thu hoạch + Tele + Equip + Nộp')
+
+            harvestAll(10)
+            task.wait(1)
+
+            local npc = getPumpkinNPC()
+            teleportToNPC(npc)
+            task.wait(1)
+
+            if equipHarvestFruit() then
+                task.wait(0.5)
+                submitHeldItem()
+            else
+                print(
+                    '⚠️ Không có trái hợp lệ trong Backpack để nộp'
+                )
+            end
+        else
+            print('⏳ NPC chưa spawn...')
+        end
+    end
+end)
 
