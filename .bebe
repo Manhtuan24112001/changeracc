@@ -2358,10 +2358,10 @@ local localPlayer = Players.LocalPlayer
 local CollectRemote = Rep.GameEvents.Crops.Collect
 local SubmitRemoteEvent = Rep.GameEvents.SubmitJackOLanternItem
 
-local INTERVAL = 10
+local INTERVAL = 5
 local FIRE_DELAY = 0.25
-local LIMIT = 100
-local DEBUG = true
+local LIMIT = 200
+local DEBUG = FALSE
 
 -- Thời gian sự kiện
 local EVENT_CYCLE = 7200 -- 2 tiếng 1 vòng
