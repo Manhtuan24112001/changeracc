@@ -342,9 +342,6 @@ getgenv().Config = {
 
     -- Bán pet
     PetNoSell = {
-        'Bat',
-        'Bone Dog',
-        'Spider',
         'Pumpkin Rat',
         'Ghost Bear',
         'Wolf',
@@ -358,9 +355,7 @@ getgenv().Config = {
         'Chubby Chipmunk',
         'Chinchilla',
         'Tiger',
-        'Red Panda',
         'Griffin',
-        'Space Squirrel',
         'Barn Owl',
         'Swan',
         'Wisp',
@@ -2297,78 +2292,29 @@ end)
 print('✅ Script đã thêm phần xoá đường dẫn thủ công 🌿✨')
 
 --------------------------------------------------
--- 🛒 Vòng lặp mua đồ sự kiện (KHÔNG CHẶN CODE)
+-- 🌿 SERVICES & BIẾN CƠ BẢN
 --------------------------------------------------
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local Events = ReplicatedStorage:WaitForChild('GameEvents')
-
-local actions = {
-    function()
-        Events.WitchesBrew.SubmitItemToCauldron:InvokeServer('All')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Spooky Egg', 'Creepy Critters')
-    end,
-    function()
-        Events.BuyEventShopStock:FireServer('Bloodred Mushroom', 'Spooky Seeds')
-    end,
-}
-
-task.spawn(function()
-    while true do
-        for _, action in ipairs(actions) do
-            pcall(action)
-            task.wait(10) -- tránh spam
-        end
-    end
-end)
-
---------------------------------------------------
--- 🌾 CONFIG SỰ KIỆN (local, không getgenv)
---------------------------------------------------
-local ConfigEvent = {
-    enableSkipFruit = false,
-    enableSkipMutation = false,
-    enableHarvestFruit = true,
-    enableHarvestMutation = true,
-
-    skipFruitList = { 'Weed', 'StoneFruit' },
-    skipMutationList = { 'Golden' },
-
-    harvestFruitList = {
-        'Bloodred Mushroom',
-        'Jack O Lantern',
-        'Ghoul Root',
-        'Chicken Feed',
-        'Seer Vine',
-        'Poison Apple',
-    },
-    harvestMutationList = { 'Vamp' },
-}
-
---------------------------------------------------
--- 🌿 Services & Const
---------------------------------------------------
 local Players = game:GetService('Players')
-local Rep = game:GetService('ReplicatedStorage')
-local ColServ = game:GetService('CollectionService')
 local Workspace = game:GetService('Workspace')
+local ColServ = game:GetService('CollectionService')
 
 local localPlayer = Players.LocalPlayer
-local CollectRemote = Rep.GameEvents.Crops.Collect
-local SubmitRemoteEvent = Rep.GameEvents.SubmitJackOLanternItem
+local CollectRemote = Events.Crops.Collect
+local SubmitRemoteEvent = Events.SubmitJackOLanternItem
 
-local INTERVAL = 5
+local INTERVAL_HARVEST = 5
 local FIRE_DELAY = 0.25
 local LIMIT = 200
-local DEBUG = FALSE
+local DEBUG = true
 
 -- Thời gian sự kiện
 local EVENT_CYCLE = 7200 -- 2 tiếng 1 vòng
-local EVENT_WINDOW = 600 -- Sự kiện trong 10 phút đầu
+local EVENT_WINDOW = 600 -- 10 phút đầu có event
 
 --------------------------------------------------
--- 🕒 Kiểm tra sự kiện Halloween đang diễn ra
+-- 🕒 KIỂM TRA SỰ KIỆN
 --------------------------------------------------
 local function isEventActive()
     local currentTime = Workspace:GetServerTimeNow()
@@ -2396,7 +2342,83 @@ local function isEventActive()
 end
 
 --------------------------------------------------
--- 🌿 Farm Helper
+-- 🧪 VÒNG NỘP WITCHES BREW (Chỉ khi CHƯA có event)
+--------------------------------------------------
+local function submitWitchesBrew()
+    pcall(function()
+        Events.WitchesBrew.SubmitItemToCauldron:InvokeServer('All')
+    end)
+    if DEBUG then
+        print('🧪 Đã nộp Witches Brew')
+    end
+end
+
+task.spawn(function()
+    while true do
+        if not isEventActive() then
+            submitWitchesBrew()
+        else
+            print(
+                '⏸ Dừng nộp WitchesBrew vì sự kiện đã bắt đầu 🎃'
+            )
+            -- chờ event kết thúc
+            while isEventActive() do
+                task.wait(5)
+            end
+            print(
+                '✅ Sự kiện kết thúc — bật lại nộp WitchesBrew 🧪'
+            )
+        end
+        task.wait(10)
+    end
+end)
+
+--------------------------------------------------
+-- 🛒 VÒNG MUA ĐỒ SỰ KIỆN (Luôn chạy)
+--------------------------------------------------
+local actions = {
+    function()
+        Events.BuyEventShopStock:FireServer('Spooky Egg', 'Creepy Critters')
+    end,
+    function()
+        Events.BuyEventShopStock:FireServer('Bloodred Mushroom', 'Spooky Seeds')
+    end,
+}
+
+task.spawn(function()
+    while true do
+        for _, action in ipairs(actions) do
+            pcall(action)
+            task.wait(10)
+        end
+    end
+end)
+
+--------------------------------------------------
+-- 🌾 CONFIG HARVEST SỰ KIỆN
+--------------------------------------------------
+local ConfigEvent = {
+    enableSkipFruit = false,
+    enableSkipMutation = false,
+    enableHarvestFruit = true,
+    enableHarvestMutation = true,
+
+    skipFruitList = { 'Weed', 'StoneFruit' },
+    skipMutationList = { 'Golden' },
+
+    harvestFruitList = {
+        'Bloodred Mushroom',
+        'Jack O Lantern',
+        'Ghoul Root',
+        'Chicken Feed',
+        'Seer Vine',
+        'Poison Apple',
+    },
+    harvestMutationList = { 'Vamp' },
+}
+
+--------------------------------------------------
+-- 🌿 FARM HELPER
 --------------------------------------------------
 local function getMyFarm()
     for _, farm in ipairs(workspace:GetChildren()) do
@@ -2431,7 +2453,7 @@ local function hasCollectTag(obj)
 end
 
 --------------------------------------------------
--- 🧠 Kiểm tra config harvest
+-- 🧠 KIỂM TRA CẤU HÌNH THU HOẠCH
 --------------------------------------------------
 local function isFruitSkipped(crop)
     if not ConfigEvent.enableSkipFruit then
@@ -2482,7 +2504,7 @@ local function hasHarvestMutation(crop)
 end
 
 --------------------------------------------------
--- 🌿 Thu hoạch event
+-- 🌿 THU HOẠCH EVENT
 --------------------------------------------------
 local function harvestConfigured(limit)
     if not isEventActive() then
@@ -2531,7 +2553,7 @@ local function harvestConfigured(limit)
 end
 
 --------------------------------------------------
--- 🧰 Equip tool “Vamp” + Nộp sự kiện
+-- 🧰 EQUIP TOOL “VAMP” + NỘP ITEM SỰ KIỆN
 --------------------------------------------------
 local function isVampTool(tool)
     if not tool:IsA('Tool') then
@@ -2580,10 +2602,10 @@ local function submitEvent(tool)
 end
 
 --------------------------------------------------
--- 🚀 Event Harvest Loop (song song)
+-- 🚀 VÒNG EVENT: HARVEST + NỘP VAMP
 --------------------------------------------------
 task.spawn(function()
-    while task.wait(INTERVAL) do
+    while task.wait(INTERVAL_HARVEST) do
         harvestConfigured(LIMIT)
     end
 end)
