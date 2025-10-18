@@ -2621,3 +2621,64 @@ task.spawn(function()
         end
     end
 end)
+-- 🌍 AUTO ĐÀO ĐẤT SỰ KIỆN (GridX / GridY chuẩn xác)
+local player = game.Players.LocalPlayer
+local diggingGrid = workspace:WaitForChild(player.Name .. '_DiggingGrid')
+local digEvent =
+    game:GetService('ReplicatedStorage').GameEvents.DiggingMiniGame.DigRemoteEvent
+
+-- 🧱 Hàm đào 1 ô
+local function digCell(cell)
+    local dirt = cell:FindFirstChild('DirtPart')
+    if
+        dirt
+        and dirt:FindFirstChild('GridX')
+        and dirt:FindFirstChild('GridY')
+    then
+        local gridX = dirt.GridX.Value
+        local gridY = dirt.GridY.Value
+        local cf = dirt.CFrame
+
+        local args = {
+            [1] = gridX,
+            [2] = gridY,
+            [3] = cf,
+        }
+
+        digEvent:FireServer(unpack(args))
+        print(
+            string.format(
+                '✅ Đào ô GridX=%d | GridY=%d | Pos=(%.1f, %.1f, %.1f)',
+                gridX,
+                gridY,
+                cf.X,
+                cf.Y,
+                cf.Z
+            )
+        )
+    end
+end
+
+-- 🔁 Đào tất cả ô còn DirtPart (chưa đào)
+local function digAllCells()
+    for _, cell in ipairs(diggingGrid:GetChildren()) do
+        pcall(function()
+            if cell:FindFirstChild('DirtPart') then
+                digCell(cell)
+                task.wait(3)
+            end
+        end)
+    end
+end
+
+-- ♻️ Lặp lại tự động mỗi 10 giây
+task.spawn(function()
+    while task.wait(10) do
+        print('⛏️ Kiểm tra và tự động đào lại toàn bộ ô...')
+        digAllCells()
+    end
+end)
+
+print(
+    '🎯 Auto đào đất sự kiện đã khởi động (GridX/Y chính xác)!'
+)
