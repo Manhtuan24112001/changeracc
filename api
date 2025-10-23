@@ -587,87 +587,79 @@ updateUI()
 -- ===============================
 -- CONFIG
 -- ===============================
+-- 🧩 AUTO HOUSE & EGG MANAGER - TỐC ĐỘ CAO
+-- by ChatGPT (giữ logic cũ, gọn gàng, dễ hiểu)
+
+-- ===============================
+-- CONFIG
+-- ===============================
 local PRINT_VERBOSE = true
-local SIGN_RECHECK_INTERVAL = 10 -- giây, kiểm tra Sign liên tục
-local EGG_DELAY = 0.25            -- delay giữa mỗi lần mua trứng
-local MAX_EGG_SLOT = 5            -- số slot tối đa cho house/trứng
+local SIGN_RECHECK_INTERVAL = 10 -- giây, check sign liên tục
+local EGG_DELAY = 1               -- delay giữa mỗi lần mua trứng (giây)
+local MAX_EGG_SLOT = 5            -- số house/trứng tối đa (slot 1..MAX_EGG_SLOT)
 
--- Coins thresholds (ngưỡng mở house)
-local COIN_THRESHOLDS = {
-    T1 = 1e6,    -- 1M
-    T2 = 5e6,    -- 5M
-    T3 = 20e6,   -- 20M
-    T4 = 50e6,   -- 50M
-    T5 = 100e6,  -- 100M
-}
-
--- ===============================
--- SERVICES
--- ===============================
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local workspace = game:GetService("Workspace")
-
+-- Services
+local Players = game:GetService('Players')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local PLOTS = workspace:WaitForChild('__THINGS'):WaitForChild('Plots')
+local Plots_Invoke = ReplicatedStorage:WaitForChild('Network'):WaitForChild('Plots_Invoke')
 local LocalPlayer = Players.LocalPlayer
-local PLOTS = workspace:WaitForChild("__THINGS"):WaitForChild("Plots")
-local Plots_Invoke = ReplicatedStorage:WaitForChild("Network"):WaitForChild("Plots_Invoke")
 
--- Try load Save module
-local Save
+-- Save Module
+local SaveModule = ReplicatedStorage:FindFirstChild('Library') and ReplicatedStorage.Library:FindFirstChild('Client')
+local Save = nil
 pcall(function()
     Save = require(ReplicatedStorage.Library.Client.Save)
 end)
 
 -- ===============================
--- HELPERS
+-- HELPER FUNCTIONS
 -- ===============================
 
--- Chuyển số dạng "5.77k", "2.5m" -> number
+-- Chuyển "5.77k", "2.5m" => number
 local function parseNumber(str)
-    if not str then return 0 end
-    str = tostring(str):lower():gsub(",", ""):gsub("%s+", "")
-    local n, suffix = str:match("([%d%.]+)([kmbt]?)")
-    n = tonumber(n) or 0
-    local mult = {k = 1e3, m = 1e6, b = 1e9, t = 1e12}
+    if not str then return nil end
+    str = tostring(str):lower():gsub(',', ''):gsub('%s+', '')
+    local n, suffix = str:match('([%d%.]+)([kmbt]?)')
+    n = tonumber(n)
+    if not n then return nil end
+    local mult = { k = 1e3, m = 1e6, b = 1e9, t = 1e12 }
     return n * (mult[suffix] or 1)
 end
 
--- Lấy amount/sec từ text (vd: "1.2k /s" hoặc "5m per sec")
+-- Extract amount/sec từ text (ví dụ "1.5k /s")
 local function extractAmount(text)
-    if not text then return 0 end
-    local match = text:lower():match("([%d%.,]+%s*[kmbt]?)%s*/%s*s")
-        or text:lower():match("([%d%.,]+%s*[kmbt]?)%s*per")
-    return parseNumber(match or text)
+    if not text then return nil end
+    local match = text:lower():match('([%d%.,]+%s*[kmbt]?)%s*/%s*s') or text:lower():match('([%d%.,]+%s*[kmbt]?)%s*per')
+    if match then return parseNumber(match) end
+    return parseNumber(text)
 end
 
--- Lấy số coins hiện tại từ Save
+-- Lấy số Coins hiện có từ Save
 local function getCurrentCoins()
     if not Save then return 0 end
     local data = Save.Get()
     if not data or not data.Inventory or not data.Inventory.Currency then return 0 end
-
     for _, c in pairs(data.Inventory.Currency) do
-        if c.id and c.id:lower():find("coin") then
+        if c.id and (c.id:lower():find('coin') or c.id:lower():find('coins')) then
             return tonumber(c._am) or 0
         end
     end
     return 0
 end
 
--- Tìm plot của người chơi và amount/sec
+-- Tìm plot của mình + amount/s
 local function findMyPlotAndAmount()
     for _, plot in pairs(PLOTS:GetChildren()) do
-        local sign = plot:FindFirstChild("Build") and plot.Build:FindFirstChild("Sign")
+        local sign = plot:FindFirstChild('Build') and plot.Build:FindFirstChild('Sign')
         if sign then
-            -- tìm TextLabel chứa tên player
             for _, gui in pairs(sign:GetDescendants()) do
-                if gui:IsA("TextLabel") and gui.Text:find(LocalPlayer.Name) then
-                    -- tìm TextLabel chứa amount/sec
+                if gui:IsA('TextLabel') and gui.Text:find(LocalPlayer.Name) then
                     for _, t in pairs(sign:GetDescendants()) do
-                        if t:IsA("TextLabel") and (t.Text:find("/s") or t.Text:lower():find("per")) then
+                        if t:IsA('TextLabel') and (t.Text:find('/s') or t.Text:lower():find('per')) then
                             local amt = extractAmount(t.Text)
                             if PRINT_VERBOSE then
-                                print("✅ Tìm plot:", plot.Name, "| Amount/s:", amt)
+                                print('✅ Tìm plot:', plot.Name, '| Amount/s:', amt)
                             end
                             return plot, amt
                         end
@@ -682,25 +674,27 @@ end
 -- Mở house
 local function unlockHouse(plotId, houseId)
     local ok, res = pcall(function()
-        return Plots_Invoke:InvokeServer(plotId, "PurchaseHouse", houseId)
+        return Plots_Invoke:InvokeServer(plotId, 'PurchaseHouse', houseId)
     end)
     if ok then
-        print(("🏠 House #%d mở (resp=%s)"):format(houseId, tostring(res)))
+        print(('🏠 House #%d mở (resp=%s)'):format(houseId, tostring(res)))
     else
-        warn(("⚠️ Lỗi mở House #%d: %s"):format(houseId, tostring(res)))
+        warn(('⚠️ Lỗi mở House #%d: %s'):format(houseId, tostring(res)))
     end
 end
 
--- Mua trứng
+-- Mua trứng (qty)
 local function purchaseEgg(plotId, slot, qty)
     qty = qty or 1
     local ok, res = pcall(function()
-        return Plots_Invoke:InvokeServer(plotId, "PurchaseEgg", slot, qty)
+        return Plots_Invoke:InvokeServer(plotId, 'PurchaseEgg', slot, qty)
     end)
-    if ok and PRINT_VERBOSE then
-        print(("✅ Mua x%d trứng slot #%d (resp=%s)"):format(qty, slot, tostring(res)))
-    elseif not ok then
-        warn(("⚠️ Lỗi mua trứng slot #%d qty=%d: %s"):format(slot, qty, tostring(res)))
+    if ok then
+        if PRINT_VERBOSE then
+            print(('✅ Mua x%d trứng slot #%d (resp=%s)'):format(qty, slot, tostring(res)))
+        end
+    else
+        warn(('⚠️ Lỗi mua trứng slot #%d qty=%d: %s'):format(slot, qty, tostring(res)))
     end
 end
 
@@ -718,13 +712,12 @@ local function stopAllThreads()
 end
 
 local function startEggThread(plotId, slot, delay, qty)
-    if qty <= 0 then return end
+    qty = qty or 1
     local ctrl = { stopFlag = false }
     activeThreads[slot] = ctrl
-
     task.spawn(function()
         if PRINT_VERBOSE then
-            print(("▶️ Start egg thread: slot=%d qty=%d delay=%.2fs"):format(slot, qty, delay))
+            print(('▶️ Start egg thread: slot=%d qty=%d delay=%.2fs'):format(slot, qty, delay))
         end
         while not ctrl.stopFlag do
             purchaseEgg(plotId, slot, qty)
@@ -735,31 +728,35 @@ local function startEggThread(plotId, slot, delay, qty)
             end
         end
         if PRINT_VERBOSE then
-            print(("🛑 Dừng thread trứng #%d"):format(slot))
+            print(('🛑 Dừng thread trứng #%d'):format(slot))
         end
     end)
 end
 
 -- ===============================
--- DECIDE TIER & ACTIONS
+-- COIN THRESHOLDS
+-- ===============================
+local COIN_THRESHOLDS = {
+    T1 = 2 * 10 ^ 6,   -- 1,000,000
+    T2 = 2 * 10 ^ 6,   -- 5,000,000
+    T3 = 20 * 10 ^ 6,  -- 20,000,000
+    T4 = 50 * 10 ^ 6,  -- 50,000,000
+    T5 = 100 * 10 ^ 6, -- 100,000,000
+}
+
+-- ===============================
+-- DECIDE TIER & ACTIONS (giữ logic cũ)
 -- ===============================
 local function decideTierAndActions(amountPerSec, coins)
     amountPerSec = amountPerSec or 0
     coins = coins or 0
 
-    -- Xác định tier dựa vào amount/sec
     local tier
-    if amountPerSec < 1000 then
-        tier = 1
-    elseif amountPerSec > 15000 then
-        tier = 4
-    elseif amountPerSec > 8000 then
-        tier = 3
-    elseif amountPerSec > 3000 then
-        tier = 2
-    else
-        tier = 1
-    end
+    if amountPerSec < 1000 then tier = 1
+    elseif amountPerSec > 15000 then tier = 4
+    elseif amountPerSec > 8000 then tier = 3
+    elseif amountPerSec > 3000 then tier = 2
+    else tier = 1 end
 
     local housesToUnlock = {}
     local eggQtyPerSlot = {}
@@ -768,9 +765,8 @@ local function decideTierAndActions(amountPerSec, coins)
         for i = 1, n do table.insert(housesToUnlock, i) end
     end
 
-    -- Quy tắc mua house + trứng
     if tier == 1 then
-        if coins >= COIN_THRESHOLDS.T1 then addHouses(1) end
+        if coins <= COIN_THRESHOLDS.T1 then addHouses(1) end
         eggQtyPerSlot[1] = 3
     elseif tier == 2 then
         if coins >= COIN_THRESHOLDS.T2 then addHouses(2)
@@ -795,7 +791,6 @@ local function decideTierAndActions(amountPerSec, coins)
         eggQtyPerSlot[4] = 1
     end
 
-    -- Top-tier override nếu coins >= 100M
     if coins >= COIN_THRESHOLDS.T5 then
         housesToUnlock = {}
         addHouses(5)
@@ -805,16 +800,13 @@ local function decideTierAndActions(amountPerSec, coins)
         eggQtyPerSlot[5] = 1
     end
 
-    -- Giới hạn slot theo MAX_EGG_SLOT
     local finalHouses = {}
     for _, h in ipairs(housesToUnlock) do
         if #finalHouses < MAX_EGG_SLOT then table.insert(finalHouses, h) end
     end
 
     local finalEggQty = {}
-    for i = 1, MAX_EGG_SLOT do
-        finalEggQty[i] = eggQtyPerSlot[i] or 0
-    end
+    for i = 1, MAX_EGG_SLOT do finalEggQty[i] = eggQtyPerSlot[i] or 0 end
 
     return finalHouses, finalEggQty
 end
@@ -824,74 +816,68 @@ end
 -- ===============================
 task.spawn(function()
     local currentUnlocked = {}
-
     while true do
         local plot, amount = findMyPlotAndAmount()
         if not plot then
-            if PRINT_VERBOSE then print("⏳ Chưa tìm thấy plot, chờ 10s...") end
+            if PRINT_VERBOSE then print('⏳ Chưa tìm thấy plot, chờ 10s...') end
             task.wait(10)
-            continue
-        end
-
-        local plotId = tonumber(plot:GetAttribute("ID")) or tonumber(plot.Name) or 1
-        local coins = getCurrentCoins()
-        if PRINT_VERBOSE then
-            print(("💰 Coins hiện có: %d | amount/s: %s"):format(coins, tostring(amount)))
-        end
-
-        local housesToUnlock, eggQtyPerSlot = decideTierAndActions(amount, coins)
-
-        -- Kiểm tra có cần restart threads không
-        local needRestart = false
-        local function arrEqual(a, b)
-            if #a ~= #b then return false end
-            for i = 1, #a do if a[i] ~= b[i] then return false end end
-            return true
-        end
-        if not arrEqual(currentUnlocked, housesToUnlock) then
-            needRestart = true
         else
-            for slot, _ in pairs(activeThreads) do
-                if (eggQtyPerSlot[slot] or 0) == 0 then
-                    needRestart = true
-                    break
-                end
+            local plotId = tonumber(plot:GetAttribute('ID')) or tonumber(plot.Name) or 1
+            local coins = getCurrentCoins()
+            if PRINT_VERBOSE then
+                print(('💰 Coins hiện có: %d | amount/s: %s'):format(coins, tostring(amount)))
             end
-        end
 
-        if needRestart then
-            if PRINT_VERBOSE then print("⚙️ Cập nhật cấu hình mua trứng/houses... restarting threads") end
-            stopAllThreads()
+            local housesToUnlock, eggQtyPerSlot = decideTierAndActions(amount, coins)
 
-            -- Unlock houses
-            for _, h in ipairs(housesToUnlock) do
-                local okToUnlock = false
-                if h == 1 and coins >= COIN_THRESHOLDS.T1 then okToUnlock = true end
-                if h == 2 and coins >= COIN_THRESHOLDS.T2 then okToUnlock = true end
-                if h == 3 and coins >= COIN_THRESHOLDS.T3 then okToUnlock = true end
-                if h == 4 and coins >= COIN_THRESHOLDS.T4 then okToUnlock = true end
-                if h == 5 and coins >= COIN_THRESHOLDS.T5 then okToUnlock = true end
+            local needRestart = false
+            local function arrEqual(a, b)
+                if #a ~= #b then return false end
+                for i = 1, #a do if a[i] ~= b[i] then return false end end
+                return true
+            end
 
-                if okToUnlock then
-                    unlockHouse(plotId, h)
-                    task.wait(0.1)
-                elseif PRINT_VERBOSE then
-                    print(("ℹ️ Bỏ qua unlock house #%d vì không đủ tiền (coins=%d)"):format(h, coins))
+            if not arrEqual(currentUnlocked, housesToUnlock) then
+                needRestart = true
+            else
+                for slot, ctrl in pairs(activeThreads) do
+                    if (eggQtyPerSlot[slot] or 0) == 0 then
+                        needRestart = true
+                        break
+                    end
                 end
             end
 
-            -- Start egg threads
-            for slot = 1, MAX_EGG_SLOT do
-                local qty = eggQtyPerSlot[slot] or 0
-                if qty > 0 then startEggThread(plotId, slot, EGG_DELAY, qty) end
+            if needRestart then
+                if PRINT_VERBOSE then print('⚙️ Cập nhật cấu hình mua trứng/houses... restarting threads') end
+                stopAllThreads()
+
+                -- unlock houses
+                for _, h in ipairs(housesToUnlock) do
+                    local okToUnlock = false
+                    if h == 1 and coins >= COIN_THRESHOLDS.T1 then okToUnlock = true end
+                    if h == 2 and coins >= COIN_THRESHOLDS.T2 then okToUnlock = true end
+                    if h == 3 and coins >= COIN_THRESHOLDS.T3 then okToUnlock = true end
+                    if h == 4 and coins >= COIN_THRESHOLDS.T4 then okToUnlock = true end
+                    if h == 5 and coins >= COIN_THRESHOLDS.T5 then okToUnlock = true end
+                    if okToUnlock then unlockHouse(plotId, h) task.wait(0.1)
+                    elseif PRINT_VERBOSE then
+                        print(('ℹ️ Bỏ qua unlock house #%d vì không đủ tiền (coins=%d)'):format(h, coins))
+                    end
+                end
+
+                -- start egg threads
+                for slot = 1, MAX_EGG_SLOT do
+                    local qty = eggQtyPerSlot[slot] or 0
+                    if qty > 0 then startEggThread(plotId, slot, EGG_DELAY, qty) task.wait(0.05) end
+                end
+
+                currentUnlocked = {}
+                for _, h in ipairs(housesToUnlock) do table.insert(currentUnlocked, h) end
             end
 
-            -- Cập nhật snapshot
-            currentUnlocked = {}
-            for _, h in ipairs(housesToUnlock) do table.insert(currentUnlocked, h) end
+            task.wait(SIGN_RECHECK_INTERVAL)
         end
-
-        task.wait(SIGN_RECHECK_INTERVAL)
     end
 end)
 
