@@ -764,7 +764,7 @@ local function decideTierAndActions(amountPerSec, coins)
 
     if desiredTier == 1 then
         -- Tier1: if coins >= 1m -> unlock house1 and buy eggs x2 (slot1)
-        if coins >= COIN_THRESHOLDS.T1 then
+        if coins <= COIN_THRESHOLDS.T1 then
             addHousesRange(1)
             eggQtyPerSlot[1] = 2
         else
