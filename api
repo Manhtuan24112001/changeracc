@@ -532,7 +532,7 @@ updateUI()
 -- CONFIG
 local PRINT_VERBOSE = true
 local SIGN_RECHECK_INTERVAL = 10 -- giây, check sign liên tục
-local EGG_DELAY = 1.25 -- delay giữa mỗi lần mua trứng (giây)
+local EGG_DELAY = 0.25 -- delay giữa mỗi lần mua trứng (giây)
 local MAX_EGG_SLOT = 5 -- số house/trứng tối đa (slot 1..MAX_EGG_SLOT)
 
 local Players = game:GetService('Players')
