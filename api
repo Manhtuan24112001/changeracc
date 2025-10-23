@@ -14,7 +14,7 @@ else
             Vector2.new(0, 0),
             workspace.CurrentCamera.CFrame
         )
-        task.wait(1)
+        task.wait(20)
         VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
     end)
 end
@@ -587,7 +587,7 @@ updateUI()
 -- CONFIG
 local PRINT_VERBOSE = true
 local SIGN_RECHECK_INTERVAL = 10 -- giây, check sign liên tục
-local EGG_DELAY = 0.25 -- delay giữa mỗi lần mua trứng (giây)
+local EGG_DELAY = 1 -- delay giữa mỗi lần mua trứng (giây)
 local MAX_EGG_SLOT = 5 -- số house/trứng tối đa (slot 1..MAX_EGG_SLOT)
 
 local Players = game:GetService('Players')
@@ -821,7 +821,7 @@ local function decideTierAndActions(amountPerSec, coins)
         -- Tier1: if coins >= 1m -> unlock house1 and buy eggs x2 (slot1)
         if coins >= COIN_THRESHOLDS.T1 then
             addHousesRange(1)
-            eggQtyPerSlot[1] = 2
+            eggQtyPerSlot[1] = 3
         else
             -- not enough money: do nothing (no unlock), but we may still buy 0 or keep threads stopped
             eggQtyPerSlot[1] = 2 -- if you still want to buy eggs without unlocking, keep setting; unlocking will be skipped
