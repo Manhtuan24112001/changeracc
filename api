@@ -523,7 +523,7 @@ updateUI()
 -- ⚙️ CONFIG
 -- ==============================
 local PRINT_VERBOSE = true
-local SIGN_RECHECK_INTERVAL = 10
+local SIGN_RECHECK_INTERVAL = 1
 local EGG_DELAY = 0.25
 local MAX_EGG_SLOT = 5
 
@@ -673,7 +673,7 @@ end
 -- COIN_THRESHOLDS[3] = 2e7   → 20,000,000 coins -> mở House #3
 -- COIN_THRESHOLDS[4] = 5e7   → 50,000,000 coins -> mở House #4
 -- COIN_THRESHOLDS[5] = 1e8   → 100,000,000 coins-> mở House #5
-local COIN_THRESHOLDS = { 1e6, 2e6, 5e7, 3e7, 5e7 }
+local COIN_THRESHOLDS = { 1e6, 2e6, 1e7, 3e7, 5e7 }
 
 local function decideTierAndActions(amount, coins)
     local tier = (amount < 1000 and 1)
